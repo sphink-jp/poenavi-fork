@@ -12,7 +12,6 @@ Path of Exile 1 の軽量なレベリングガイド＆タイマーツール。
 - **マップ画像サムネイル一覧** — クリックで拡大表示（←→キーでページ送り）
 - **基本方向矢印** — そのエリアで進むべき方向を大きな矢印で表示
 - **経験値効率表示** — 🌟マーク付きで稼ぎポイントがひと目でわかる
-- **ガイド部分は折りたたみ可能** — タイマーだけ使いたいときはガイドを畳んでコンパクトに
 - ガイドデータはSetting画面からユーザでも自由に編集可能
 
 ※ひな型のガイド情報は、私が過去に作った攻略チャートの内容です。全体の流れを見たい場合などはこちらをご確認ください。
@@ -58,7 +57,6 @@ Path of Exile 1 の軽量なレベリングガイド＆タイマーツール。
 - Act 1〜10 のラップタイム計測
 - ホットキーでゲーム中もワンタッチ操作
 - 半透明オーバーレイ — ゲーム画面に重ねて使える
-- **タイマー部分は折りたたみ可能** — ガイドだけ見たいときはタイマーを畳んでスッキリ表示
 - ラン記録の自動保存（JSON形式）
 - ※今後のバージョンアップで、ログを使った自動取得を実装予定
 
@@ -69,11 +67,32 @@ Path of Exile 1 の軽量なレベリングガイド＆タイマーツール。
 - CPU負荷ほぼゼロ、メモリ使用量最小限
 
 ### 🔒 安全性と透明性
-- **ログファイルの読み取りのみ** — ゲームのメモリ、プロセス、ネットワーク通信には一切触れません
-- **外部通信なし** — インターネットに一切接続しません。すべてローカル完結
+
+#### GGG公式ポリシーに準拠
+GGGの[Developer Docs](https://www.pathofexile.com/developer/docs)では、サードパーティツールについて以下のように明記されています：
+
+> **Executable apps that run independently from the game**
+> - While not encouraged, these are **permitted**.
+> - **Reading the game's log files is okay** as long as the user is aware of what you are doing with that data.
+
+> **Executable apps that interact with the game or game files**
+> - This behaviour is strictly against our Terms of Use.
+
+PoENaviは前者（ゲームと独立して動作し、ログファイルを読み取るだけ）に該当します。
+
+#### PoENaviが「やること」と「やらないこと」
+
+| ✅ やること | ❌ やらないこと |
+|------------|---------------|
+| Client.txtログファイルの読み取り | ゲームのメモリ・プロセスへのアクセス |
+| エリア移動・レベルアップの検知 | キー入力の自動送信・マクロ操作 |
+| ローカルでの情報表示 | インターネットへの通信・データ送信 |
+| | ゲームクライアントの改変 |
+| | パケットの傍受・改ざん |
+
 - **ソースコード完全公開** — 何をしているか誰でも確認できます
-- GGGが許容する外部ツールの手法（Client.txtログ読み取り）を使用 — Lutbot, Exile Leveling等と同じアプローチです
-- exe版が不安な方は、このGithubから取得してもらうことで、ソースから直接実行できます
+- Exilence Next, Livesplit, PoE Lurker等と同じClient.txtログ読み取りアプローチです
+- exe版が不安な方は、このGitHubからソースを取得して直接実行できます
 
 ---
 
@@ -102,7 +121,7 @@ python main.py
    - Steam版: `C:\Program Files (x86)\Steam\steamapps\common\Path of Exile\logs\Client.txt`
 4. Save → PoEでプレイ開始！
 
-### ホットキー（デフォルト） — タイマー操作用
+### ホットキー（デフォルト）
 | キー | 機能 |
 |------|------|
 | F7 | Start / Stop |
