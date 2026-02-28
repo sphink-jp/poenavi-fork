@@ -164,12 +164,14 @@ class LogWatcher(QObject):
             return
         
         # Act10キタヴァ討伐チェック（無慈悲 = Act10）
-        if "プレイヤーはキタヴァの無慈悲な苦悩により永続的に弱体化した" in line:
+        if "プレイヤーはキタヴァの無慈悲な苦悩により永続的に弱体化した" in line or \
+           "Kitava's merciless affliction" in line:
             self.act10_cleared.emit()
             return
         
         # Act5キタヴァ討伐チェック（残酷 = Act5）
-        if "プレイヤーはキタヴァの残酷な苦悩により永続的に弱体化した" in line:
+        if "プレイヤーはキタヴァの残酷な苦悩により永続的に弱体化した" in line or \
+           "Kitava's cruel affliction" in line:
             self.kitava_defeated.emit()
             return
         

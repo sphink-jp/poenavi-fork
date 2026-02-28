@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PoE RTA Timer")
+        self.setWindowTitle("ぽえなび")
         self.resize(420, 1200)
         
         # アプリアイコン設定
@@ -48,6 +48,7 @@ class MainWindow(QMainWindow):
         self.resize_edge = None  # None or combination of 'left','right','top','bottom'
         self.resize_start_geo = None
         self.resize_start_pos = None
+        self.window_locked = self.config.get("window_locked", False)
         self.EDGE_MARGIN = 8
         
         # エリア訪問回数カウンター（街エリアはカウントしない）— zone_id基準
@@ -201,6 +202,8 @@ class MainWindow(QMainWindow):
         if event.type() in (QEvent.Type.MouseButtonPress, QEvent.Type.MouseMove, QEvent.Type.MouseButtonRelease):
             # グローバル座標 → ウィンドウ座標
             if event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.LeftButton:
+                if self.window_locked:
+                    return False
                 gpos = event.globalPosition().toPoint()
                 edges = self._global_detect_edge(gpos)
                 if edges:
@@ -302,6 +305,7 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QSizePolicy
         
         central_widget = QWidget()
+        central_widget.setStyleSheet(f"background-color: {Styles.BACKGROUND_COLOR}; border-radius: 10px;")
         self.setCentralWidget(central_widget)
         
         layout = QVBoxLayout(central_widget)
@@ -970,7 +974,7 @@ class MainWindow(QMainWindow):
     def _get_zone_id(self, zone_name: str) -> str | None:
         """zone_dataからエリア名でIDを検索。part2_modeに応じてAct6-10/Act1-5を優先"""
         # Act10フラグが立っている場合、志す者の広場はAct10を優先
-        if getattr(self, '_in_act10', False) and zone_name == "志す者の広場":
+        if getattr(self, '_in_act10', False) and zone_name in ("志す者の広場", "Aspirants' Plaza"):
             for z in self.zone_data.get("Act 10", []):
                 if z["zone"] == zone_name:
                     return z.get("id")
@@ -984,7 +988,7 @@ class MainWindow(QMainWindow):
         
         for act_name in search_order:
             for z in self.zone_data.get(act_name, []):
-                if z["zone"] == zone_name:
+                if z["zone"] == zone_name or z.get("zone_en") == zone_name:
                     return z.get("id")
         return None
     
@@ -1003,7 +1007,7 @@ class MainWindow(QMainWindow):
                 # 志す者の広場のvisitカウントを増やす
                 self.zone_visit_counts[self._lab_zone_id] = self.zone_visit_counts.get(self._lab_zone_id, 1) + 1
                 visit_num = self.zone_visit_counts[self._lab_zone_id]
-                lab_zone_name = "志す者の広場"
+                lab_zone_name = zone_name  # 日本語/英語どちらでも対応
                 self._update_guide_and_map(lab_zone_name, self._lab_zone_id, visit_num)
                 self._lab_zone_id = None
             else:
@@ -1017,7 +1021,7 @@ class MainWindow(QMainWindow):
             self._update_visit_btn()
         
         # 荒廃した広場(Act10固有)入場 → Act10フラグON
-        if zone_name == "荒廃した広場" and not self._restoring:
+        if zone_name in ("荒廃した広場", "The Ravaged Square") and not self._restoring:
             self._in_act10 = True
         
         # 黄昏の岸辺入場 → 新キャラ判定フラグON（Lv2検知でリセット確定）
@@ -1238,6 +1242,9 @@ class MainWindow(QMainWindow):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            if self.window_locked:
+                event.accept()
+                return
             edges = self._detect_edge(event.position().toPoint())
             if edges:
                 self.resize_edge = edges
@@ -1276,8 +1283,9 @@ class MainWindow(QMainWindow):
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
         else:
-            edges = self._detect_edge(event.position().toPoint())
-            self.setCursor(QCursor(self._edge_cursor(edges)))
+            if not self.window_locked:
+                edges = self._detect_edge(event.position().toPoint())
+                self.setCursor(QCursor(self._edge_cursor(edges)))
 
     def mouseReleaseEvent(self, event):
         self.drag_position = None
@@ -1332,6 +1340,9 @@ class MainWindow(QMainWindow):
             if new_timer_size != self.timer_size:
                 self.timer_size = new_timer_size
                 self._apply_timer_size()
+            
+            # ウィンドウロック更新
+            self.window_locked = self.config.get("window_locked", False)
             
             self.update_level_guide_display()
         

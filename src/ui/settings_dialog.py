@@ -716,6 +716,20 @@ class SettingsDialog(QDialog):
         timer_size_layout.addStretch()
         
         general_layout.addWidget(timer_size_group)
+
+        # ウィンドウロック設定
+        lock_group = QGroupBox("ウィンドウ操作")
+        lock_group.setStyleSheet(group.styleSheet())
+        lock_layout = QHBoxLayout(lock_group)
+        
+        from PySide6.QtWidgets import QCheckBox
+        self.window_lock_check = QCheckBox("ウィンドウの移動・リサイズを禁止する")
+        self.window_lock_check.setStyleSheet(f"color: {Styles.TEXT_COLOR}; font-size: 12px;")
+        self.window_lock_check.setChecked(self.current_config.get("window_locked", False))
+        lock_layout.addWidget(self.window_lock_check)
+        lock_layout.addStretch()
+        
+        general_layout.addWidget(lock_group)
         
         # 街エリア設定
         town_group = QGroupBox("街エリア（ガイド更新スキップ）")
@@ -1017,5 +1031,6 @@ class SettingsDialog(QDialog):
             "zone_data": zone_data,
             "guide_font_size": self.guide_font_spin.value(),
             "timer_size": self.timer_size_combo.currentData(),
+            "window_locked": self.window_lock_check.isChecked(),
             "town_zones": [z.strip() for z in self.town_zones_edit.toPlainText().split("\n") if z.strip()],
         }
