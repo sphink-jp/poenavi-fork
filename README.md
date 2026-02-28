@@ -59,6 +59,20 @@ Path of Exile 1 の軽量なレベリングガイド＆タイマーツール。
   - 「自動/手動」ボタンで切替可能（初期設定: 自動）
 ![screenshot6](docs/screenshot6.png)
   - 自動モード中もホットキー（F9）による手動ラップは有効（万が一の補正用）
+  - 各Actの完了判定タイミング:
+
+| Act | 完了トリガー |
+|-----|------------|
+| Act 1 | 南の森（The Southern Forest）に入場 |
+| Act 2 | サーン市街（The City of Sarn）に入場 |
+| Act 3 | 水道橋（The Aqueduct）に入場 |
+| Act 4 | 奴隷収容所（The Slave Pens）に入場 |
+| Act 5 | キタヴァ撃破（耐性ペナルティログ検知） |
+| Act 6 | 橋の野営地（The Bridge Encampment）に入場 |
+| Act 7 | サーンの城壁（The Sarn Ramparts）に入場 |
+| Act 8 | 血の水道橋（The Blood Aqueduct）に入場 |
+| Act 9 | オリアスの船着場（Oriath Docks）に入場 |
+| Act 10 | キタヴァ撃破（耐性ペナルティログ検知） |
 - ホットキーでゲーム中もワンタッチ操作
 - 半透明オーバーレイ — ゲーム画面に重ねて使える
 - ラン記録の自動保存 — `runs/YYYYMMDD_HHMMSS.json` に保存（Act10完了時またはタイマーリセット時）
