@@ -11,8 +11,7 @@ pip install pyinstaller 2>nul
 REM Build
 pyinstaller --noconfirm --onedir --windowed ^
     --name "PoENavi" ^
-    --icon "icon.ico" ^
-    --add-data "icon.ico;." ^
+    --add-data "icon.jpg;." ^
     --add-data "config.json;." ^
     --add-data "guide_data.json;." ^
     --add-data "monster_levels.json;." ^
@@ -25,6 +24,8 @@ pyinstaller --noconfirm --onedir --windowed ^
     --hidden-import "pynput.keyboard" ^
     --hidden-import "pynput.keyboard._win32" ^
     --hidden-import "keyboard" ^
+    --hidden-import "cv2" ^
+    --hidden-import "numpy" ^
     main.py
 
 echo.

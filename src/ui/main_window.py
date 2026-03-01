@@ -17,6 +17,8 @@ from src.utils.lap_recorder import LapRecorder
 from src.utils.log_watcher import LogWatcher
 from src.utils.zone_data import get_zone_info, get_level_advice, DEFAULT_ZONE_DATA
 from src.utils.guide_data import load_guide_data, get_zone_guide, format_guide_html
+from src.utils.map_matcher import MapMatcher
+from src.utils.screen_capture import ScreenCapture
 
 class MainWindow(QMainWindow):
     # ホットキーイベントをメインスレッドで処理するためのシグナル
@@ -111,6 +113,19 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self.map_thumbnail.auto_open = self.config.get("auto_open_map", False)
         self.map_thumbnail.auto_position = self.config.get("auto_position_map", True)
+
+        # マップパターン自動検出
+        self.map_matcher = MapMatcher()
+        self.screen_capture = ScreenCapture(self)
+        self._map_match_enabled = self.config.get("map_match_enabled", False)
+        rect = self.config.get("map_match_minimap_rect", {})
+        self.screen_capture.set_minimap_rect(
+            rect.get("x", 0), rect.get("y", 0),
+            rect.get("width", 300), rect.get("height", 300),
+        )
+        self.screen_capture.set_delay(self.config.get("map_match_delay_ms", 3000))
+        self.screen_capture.capture_ready.connect(self._on_minimap_captured)
+
         self.setMouseTracking(True)
         self.centralWidget().setMouseTracking(True)
         self._apply_bg_opacity(self.config.get("window_opacity", 100))
@@ -1355,7 +1370,32 @@ class MainWindow(QMainWindow):
                         map_zone_name = z["zone"]  # 日本語名
                         break
         self.map_thumbnail.load_maps(map_zone_name, part2=self.part2_mode, zone_changed=zone_changed)
-    
+
+        # マップパターン自動検出: ゾーン変更時にキャプチャをスケジュール
+        if zone_changed and self._map_match_enabled and self.map_thumbnail.current_paths:
+            self._current_match_zone = map_zone_name
+            # パターン画像を前処理（キャッシュ済みなら即座に返る）
+            self.map_matcher.preprocess_zone(map_zone_name, self.map_thumbnail.current_paths)
+            self.screen_capture.schedule_capture()
+        else:
+            self.screen_capture.cancel()
+
+    def _on_minimap_captured(self, minimap_bgr):
+        """ミニマップキャプチャ完了 → パターンマッチング実行"""
+        zone_name = getattr(self, "_current_match_zone", "")
+        if not zone_name:
+            return
+
+        results = self.map_matcher.match_minimap(minimap_bgr, zone_name)
+        if results:
+            best = results[0]
+            print(f"[MAP] パターン検出: P{best.pattern_index} "
+                  f"(score={best.score:.4f}, {best.confidence})")
+            self.map_thumbnail.highlight_pattern(best.pattern_index, best.confidence)
+        else:
+            print("[MAP] パターン検出失敗")
+            self.map_thumbnail.clear_highlight()
+
     def on_kitava_defeated(self):
         """Act5キタヴァ討伐 → Act6-10に切替 + 自動ラップ"""
         if not self.part2_mode:
@@ -1547,6 +1587,14 @@ class MainWindow(QMainWindow):
             # マップ自動表示更新
             self.map_thumbnail.auto_open = self.config.get("auto_open_map", False)
             self.map_thumbnail.auto_position = self.config.get("auto_position_map", True)
+            # マップパターン検出更新
+            self._map_match_enabled = self.config.get("map_match_enabled", False)
+            rect = self.config.get("map_match_minimap_rect", {})
+            self.screen_capture.set_minimap_rect(
+                rect.get("x", 0), rect.get("y", 0),
+                rect.get("width", 300), rect.get("height", 300),
+            )
+            self.screen_capture.set_delay(self.config.get("map_match_delay_ms", 3000))
             # 透過率更新
             self._apply_bg_opacity(self.config.get("window_opacity", 100))
             

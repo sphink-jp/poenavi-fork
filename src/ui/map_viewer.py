@@ -65,24 +65,32 @@ def _list_images(directory: str) -> list[str]:
 class ClickableThumb(QLabel):
     """クリック可能なサムネイルラベル"""
     clicked = Signal(str)  # ファイルパスを送出
-    
+
+    _STYLE_NORMAL = """
+        QLabel {
+            border: 1px solid rgba(176, 255, 123, 0.3);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 100);
+        }
+        QLabel:hover {
+            border: 1px solid rgba(176, 255, 123, 0.7);
+        }
+    """
+    _HIGHLIGHT_COLORS = {
+        "high":   "rgba(0, 255, 80, 0.9)",
+        "medium": "rgba(255, 255, 0, 0.9)",
+        "low":    "rgba(255, 160, 0, 0.9)",
+    }
+
     def __init__(self, image_path: str, parent=None):
         super().__init__(parent)
         self.image_path = image_path
+        self._highlighted = False
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.setFixedSize(THUMB_WIDTH, THUMB_HEIGHT)
-        self.setStyleSheet("""
-            QLabel {
-                border: 1px solid rgba(176, 255, 123, 0.3);
-                border-radius: 4px;
-                background: rgba(0, 0, 0, 100);
-            }
-            QLabel:hover {
-                border: 1px solid rgba(176, 255, 123, 0.7);
-            }
-        """)
+        self.setStyleSheet(self._STYLE_NORMAL)
         self.setAlignment(Qt.AlignCenter)
-        
+
         # サムネイル読み込み
         pix = QPixmap(image_path)
         if not pix.isNull():
@@ -91,7 +99,22 @@ class ClickableThumb(QLabel):
                 Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
             self.setPixmap(scaled)
-    
+
+    def set_highlighted(self, highlighted: bool, confidence: str = "high"):
+        """ハイライト表示の切替（confidence: high=緑, medium=黄, low=橙）"""
+        self._highlighted = highlighted
+        if highlighted:
+            color = self._HIGHLIGHT_COLORS.get(confidence, self._HIGHLIGHT_COLORS["low"])
+            self.setStyleSheet(f"""
+                QLabel {{
+                    border: 3px solid {color};
+                    border-radius: 4px;
+                    background: rgba(0, 0, 0, 100);
+                }}
+            """)
+        else:
+            self.setStyleSheet(self._STYLE_NORMAL)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.clicked.emit(self.image_path)
@@ -370,6 +393,19 @@ class MapThumbnailWidget(QWidget):
                     layout.takeAt(0)
                 # QLayoutはdeleteLater不要、親から外せばGCされる
     
+    def highlight_pattern(self, pattern_index: int, confidence: str = "high"):
+        """指定パターンのサムネイルをハイライト（1-indexed）"""
+        self.clear_highlight()
+        idx = pattern_index - 1  # 1-indexed → 0-indexed
+        if 0 <= idx < len(self._thumbs):
+            self._thumbs[idx].set_highlighted(True, confidence)
+
+    def clear_highlight(self):
+        """全サムネイルのハイライトを解除"""
+        for thumb in self._thumbs:
+            if thumb._highlighted:
+                thumb.set_highlighted(False)
+
     def clear(self):
         """表示をクリア"""
         if self._open_dialog is not None:

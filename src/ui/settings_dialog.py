@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                                QFormLayout, QTextEdit, QFrame, QRadioButton,
                                QButtonGroup, QGridLayout)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QKeySequence
+from PySide6.QtGui import QFont, QKeySequence, QPainter, QPen, QColor
 from src.ui.styles import Styles
 from src.utils.zone_data import DEFAULT_ZONE_DATA
 from src.utils.guide_data import load_guide_data, save_guide_data
@@ -569,10 +569,37 @@ class GuideEditorDialog(QDialog):
         return {}
 
 
+class CaptureAreaOverlay(QWidget):
+    """キャプチャ範囲を赤枠で表示する透過オーバーレイ"""
+
+    def __init__(self):
+        super().__init__(None)
+        self.setWindowFlags(
+            Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+        )
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+
+    def update_rect(self, x, y, w, h):
+        self.setGeometry(x - 2, y - 2, w + 4, h + 4)
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        pen = QPen(QColor(255, 0, 0, 200))
+        pen.setWidth(3)
+        painter.setPen(pen)
+        painter.drawRect(2, 2, self.width() - 4, self.height() - 4)
+        # ラベル
+        painter.setPen(QColor(255, 0, 0, 220))
+        painter.drawText(6, 16, "minimap capture area")
+
+
 class SettingsDialog(QDialog):
     def __init__(self, parent=None, current_config=None):
         super().__init__(parent)
         self.setWindowTitle("設定")
+        self._capture_overlay = None
         self.resize(500, 600)
         self.setStyleSheet(Styles.MAIN_WINDOW)
         
@@ -785,6 +812,70 @@ class SettingsDialog(QDialog):
         self.auto_position_map_check.setChecked(self.current_config.get("auto_position_map", True))
         map_layout.addWidget(self.auto_position_map_check)
 
+        # パターン自動検出
+        self.map_match_check = QCheckBox("ミニマップからパターンを自動検出する")
+        self.map_match_check.setStyleSheet(self.window_lock_check.styleSheet())
+        self.map_match_check.setChecked(self.current_config.get("map_match_enabled", False))
+        map_layout.addWidget(self.map_match_check)
+
+        delay_row = QHBoxLayout()
+        delay_label = QLabel("キャプチャ遅延:")
+        delay_label.setStyleSheet(f"color: {Styles.TEXT_COLOR}; font-size: 12px;")
+        delay_row.addWidget(delay_label)
+        self.map_match_delay_spin = QSpinBox()
+        self.map_match_delay_spin.setRange(0, 10000)
+        self.map_match_delay_spin.setSingleStep(500)
+        self.map_match_delay_spin.setSuffix(" ms")
+        self.map_match_delay_spin.setValue(self.current_config.get("map_match_delay_ms", 3000))
+        self.map_match_delay_spin.setStyleSheet(_spinbox_style(width=80))
+        delay_row.addWidget(self.map_match_delay_spin)
+        delay_row.addStretch()
+        map_layout.addLayout(delay_row)
+
+        # ミニマップ位置設定
+        rect_data = self.current_config.get("map_match_minimap_rect", {})
+        rect_row = QHBoxLayout()
+        rect_label = QLabel("ミニマップ位置:")
+        rect_label.setStyleSheet(f"color: {Styles.TEXT_COLOR}; font-size: 12px;")
+        rect_row.addWidget(rect_label)
+
+        self.minimap_x_spin = QSpinBox()
+        self.minimap_x_spin.setRange(0, 9999)
+        self.minimap_x_spin.setPrefix("X:")
+        self.minimap_x_spin.setValue(rect_data.get("x", 0))
+        self.minimap_x_spin.setStyleSheet(_spinbox_style(width=65))
+        rect_row.addWidget(self.minimap_x_spin)
+
+        self.minimap_y_spin = QSpinBox()
+        self.minimap_y_spin.setRange(0, 9999)
+        self.minimap_y_spin.setPrefix("Y:")
+        self.minimap_y_spin.setValue(rect_data.get("y", 0))
+        self.minimap_y_spin.setStyleSheet(_spinbox_style(width=65))
+        rect_row.addWidget(self.minimap_y_spin)
+
+        self.minimap_w_spin = QSpinBox()
+        self.minimap_w_spin.setRange(1, 9999)
+        self.minimap_w_spin.setPrefix("W:")
+        self.minimap_w_spin.setValue(rect_data.get("width", 300))
+        self.minimap_w_spin.setStyleSheet(_spinbox_style(width=65))
+        rect_row.addWidget(self.minimap_w_spin)
+
+        self.minimap_h_spin = QSpinBox()
+        self.minimap_h_spin.setRange(1, 9999)
+        self.minimap_h_spin.setPrefix("H:")
+        self.minimap_h_spin.setValue(rect_data.get("height", 300))
+        self.minimap_h_spin.setStyleSheet(_spinbox_style(width=65))
+        rect_row.addWidget(self.minimap_h_spin)
+
+        rect_row.addStretch()
+        map_layout.addLayout(rect_row)
+
+        # スピンボックス変更時にオーバーレイ更新
+        for spin in (self.minimap_x_spin, self.minimap_y_spin,
+                     self.minimap_w_spin, self.minimap_h_spin):
+            spin.valueChanged.connect(self._update_capture_overlay)
+        self.map_match_check.toggled.connect(self._on_map_match_toggled)
+
         general_layout.addWidget(map_group)
         
         # 街エリア設定
@@ -970,6 +1061,51 @@ class SettingsDialog(QDialog):
         btn_layout.addWidget(self.cancel_btn)
         layout.addLayout(btn_layout)
     
+    def showEvent(self, event):
+        super().showEvent(event)
+        # パターン検出ON時はオーバーレイ表示
+        if self.map_match_check.isChecked():
+            self._show_capture_overlay()
+
+    def closeEvent(self, event):
+        self._hide_capture_overlay()
+        super().closeEvent(event)
+
+    def reject(self):
+        self._hide_capture_overlay()
+        super().reject()
+
+    def accept(self):
+        self._hide_capture_overlay()
+        super().accept()
+
+    def _on_map_match_toggled(self, checked):
+        if checked:
+            self._show_capture_overlay()
+        else:
+            self._hide_capture_overlay()
+
+    def _show_capture_overlay(self):
+        if self._capture_overlay is None:
+            self._capture_overlay = CaptureAreaOverlay()
+        self._update_capture_overlay()
+        self._capture_overlay.show()
+
+    def _hide_capture_overlay(self):
+        if self._capture_overlay is not None:
+            self._capture_overlay.close()
+            self._capture_overlay = None
+
+    def _update_capture_overlay(self):
+        if self._capture_overlay is None:
+            return
+        self._capture_overlay.update_rect(
+            self.minimap_x_spin.value(),
+            self.minimap_y_spin.value(),
+            self.minimap_w_spin.value(),
+            self.minimap_h_spin.value(),
+        )
+
     def browse_log_file(self):
         path, _ = QFileDialog.getOpenFileName(
             self, "Select Client.txt", "", "Log files (*.txt);;All files (*)"
@@ -1095,5 +1231,13 @@ class SettingsDialog(QDialog):
             "window_locked": self.window_lock_check.isChecked(),
             "auto_open_map": self.auto_open_map_check.isChecked(),
             "auto_position_map": self.auto_position_map_check.isChecked(),
+            "map_match_enabled": self.map_match_check.isChecked(),
+            "map_match_delay_ms": self.map_match_delay_spin.value(),
+            "map_match_minimap_rect": {
+                "x": self.minimap_x_spin.value(),
+                "y": self.minimap_y_spin.value(),
+                "width": self.minimap_w_spin.value(),
+                "height": self.minimap_h_spin.value(),
+            },
             "town_zones": [z.strip() for z in self.town_zones_edit.toPlainText().split("\n") if z.strip()],
         }
