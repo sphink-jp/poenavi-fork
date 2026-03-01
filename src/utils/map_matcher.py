@@ -30,6 +30,7 @@ class MatchResult:
     image_path: str
     score: float        # 低いほど一致度が高い
     confidence: str     # "high", "medium", "low"
+    confidence_pct: float = 0.0  # 信頼度パーセント (0-100)
 
 
 class MapMatcher:
@@ -209,7 +210,7 @@ class MapMatcher:
 
         # 信頼度を判定
         sorted_scores = sorted(scores)
-        confidence = self._classify_confidence(sorted_scores)
+        confidence, confidence_pct = self._classify_confidence(sorted_scores)
 
         # スコア順にソート（低いほど一致）
         results.sort(key=lambda x: x[1])
@@ -220,6 +221,7 @@ class MapMatcher:
                 image_path=pat.image_path,
                 score=score,
                 confidence=confidence if i == 0 else "low",
+                confidence_pct=confidence_pct if i == 0 else 0.0,
             )
             for i, (pat, score) in enumerate(results)
         ]
@@ -289,16 +291,17 @@ class MapMatcher:
 
         return 0.5 * hu_dist + 0.3 * contour_dist + 0.2 * ar_score
 
-    def _classify_confidence(self, sorted_scores: list[float]) -> str:
-        """スコア分布から信頼度を判定"""
+    def _classify_confidence(self, sorted_scores: list[float]) -> tuple[str, float]:
+        """スコア分布から信頼度とパーセントを判定"""
         if len(sorted_scores) < 2:
-            return "low"
+            return "low", 0.0
         best, second = sorted_scores[0], sorted_scores[1]
         if second == 0:
-            return "low"
+            return "low", 0.0
         gap = (second - best) / second
+        pct = min(99.9, gap * 100)
         if gap > 0.5:
-            return "high"
+            return "high", pct
         elif gap > 0.2:
-            return "medium"
-        return "low"
+            return "medium", pct
+        return "low", pct

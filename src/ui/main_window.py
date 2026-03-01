@@ -1390,8 +1390,9 @@ class MainWindow(QMainWindow):
         if results:
             best = results[0]
             print(f"[MAP] パターン検出: P{best.pattern_index} "
-                  f"(score={best.score:.4f}, {best.confidence})")
-            self.map_thumbnail.highlight_pattern(best.pattern_index, best.confidence)
+                  f"(score={best.score:.4f}, {best.confidence}, {best.confidence_pct:.0f}%)")
+            self.map_thumbnail.highlight_pattern(
+                best.pattern_index, best.confidence, best.confidence_pct)
         else:
             print("[MAP] パターン検出失敗")
             self.map_thumbnail.clear_highlight()

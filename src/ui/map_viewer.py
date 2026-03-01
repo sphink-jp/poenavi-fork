@@ -393,18 +393,41 @@ class MapThumbnailWidget(QWidget):
                     layout.takeAt(0)
                 # QLayoutはdeleteLater不要、親から外せばGCされる
     
-    def highlight_pattern(self, pattern_index: int, confidence: str = "high"):
+    def highlight_pattern(self, pattern_index: int, confidence: str = "high",
+                          confidence_pct: float = 0.0):
         """指定パターンのサムネイルをハイライト（1-indexed）"""
         self.clear_highlight()
         idx = pattern_index - 1  # 1-indexed → 0-indexed
         if 0 <= idx < len(self._thumbs):
             self._thumbs[idx].set_highlighted(True, confidence)
 
+        # ヘッダーに検出結果を表示
+        total = len(self.current_paths)
+        self.header_label.setText(
+            f"🗺 マップレイアウト ({total}パターン)"
+            f" — 自動検出: P{pattern_index} ({confidence_pct:.0f}%)"
+        )
+
+        # 開いているダイアログがあればそのパターンに移動
+        if self._open_dialog is not None and 0 <= idx < len(self.current_paths):
+            self._open_dialog.current_index = idx
+            self._open_dialog._show_image()
+            path = self.current_paths[idx]
+            fname = os.path.basename(path)
+            self._open_dialog.setWindowTitle(
+                f"{fname} ({idx+1}/{total})"
+                f" — 自動検出 ({confidence_pct:.0f}%)"
+            )
+
     def clear_highlight(self):
         """全サムネイルのハイライトを解除"""
         for thumb in self._thumbs:
             if thumb._highlighted:
                 thumb.set_highlighted(False)
+        # ヘッダーをリセット
+        total = len(self.current_paths)
+        if total > 0:
+            self.header_label.setText(f"🗺 マップレイアウト ({total}パターン)")
 
     def clear(self):
         """表示をクリア"""
