@@ -942,5 +942,8 @@
   "setup_completed": false,
   "window_locked": false,
   "window_opacity": 55,
-  "auto_lap": true
+  "auto_lap": true,
+  "display_monitor": 0,
+  "auto_open_map": false,
+  "auto_position_map": true
 }

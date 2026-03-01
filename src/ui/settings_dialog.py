@@ -767,8 +767,25 @@ class SettingsDialog(QDialog):
         self.window_lock_check.setChecked(self.current_config.get("window_locked", False))
         lock_layout.addWidget(self.window_lock_check)
         lock_layout.addStretch()
-        
+
         general_layout.addWidget(lock_group)
+
+        # マップ表示設定
+        map_group = QGroupBox("マップ表示")
+        map_group.setStyleSheet(group.styleSheet())
+        map_layout = QVBoxLayout(map_group)
+
+        self.auto_open_map_check = QCheckBox("エリア移動時にマップレイアウトを自動で開く")
+        self.auto_open_map_check.setStyleSheet(self.window_lock_check.styleSheet())
+        self.auto_open_map_check.setChecked(self.current_config.get("auto_open_map", False))
+        map_layout.addWidget(self.auto_open_map_check)
+
+        self.auto_position_map_check = QCheckBox("マップウィンドウをメインウィンドウの隣に自動配置する")
+        self.auto_position_map_check.setStyleSheet(self.window_lock_check.styleSheet())
+        self.auto_position_map_check.setChecked(self.current_config.get("auto_position_map", True))
+        map_layout.addWidget(self.auto_position_map_check)
+
+        general_layout.addWidget(map_group)
         
         # 街エリア設定
         town_group = QGroupBox("街エリア（ガイド更新スキップ）")
@@ -1076,5 +1093,7 @@ class SettingsDialog(QDialog):
             "timer_size": self.timer_size_combo.currentData(),
             "window_opacity": self.opacity_slider.value(),
             "window_locked": self.window_lock_check.isChecked(),
+            "auto_open_map": self.auto_open_map_check.isChecked(),
+            "auto_position_map": self.auto_position_map_check.isChecked(),
             "town_zones": [z.strip() for z in self.town_zones_edit.toPlainText().split("\n") if z.strip()],
         }
