@@ -109,6 +109,8 @@ class MainWindow(QMainWindow):
         self.current_act = 1  # 1-10
         
         self.setup_ui()
+        self.map_thumbnail.auto_open = self.config.get("auto_open_map", False)
+        self.map_thumbnail.auto_position = self.config.get("auto_position_map", True)
         self.setMouseTracking(True)
         self.centralWidget().setMouseTracking(True)
         self._apply_bg_opacity(self.config.get("window_opacity", 100))
@@ -1325,9 +1327,9 @@ class MainWindow(QMainWindow):
             self.advice_label.setStyleSheet("color: #888888; font-size: 12px;")
         
         # 攻略ガイド・マップ更新
-        self._update_guide_and_map(zone_name, zone_id, visit_num)
+        self._update_guide_and_map(zone_name, zone_id, visit_num, zone_changed=True)
     
-    def _update_guide_and_map(self, zone_name: str, zone_id: str | None, visit_num: int):
+    def _update_guide_and_map(self, zone_name: str, zone_id: str | None, visit_num: int, zone_changed: bool = False):
         """攻略ガイドとマップ画像を更新"""
         # 訪問回数オーバーライド適用
         effective_visit = self.visit_override if self.visit_override is not None else visit_num
@@ -1352,7 +1354,7 @@ class MainWindow(QMainWindow):
                     if z.get("id") == zone_id:
                         map_zone_name = z["zone"]  # 日本語名
                         break
-        self.map_thumbnail.load_maps(map_zone_name, part2=self.part2_mode)
+        self.map_thumbnail.load_maps(map_zone_name, part2=self.part2_mode, zone_changed=zone_changed)
     
     def on_kitava_defeated(self):
         """Act5キタヴァ討伐 → Act6-10に切替 + 自動ラップ"""
@@ -1542,6 +1544,9 @@ class MainWindow(QMainWindow):
             
             # ウィンドウロック更新
             self.window_locked = self.config.get("window_locked", False)
+            # マップ自動表示更新
+            self.map_thumbnail.auto_open = self.config.get("auto_open_map", False)
+            self.map_thumbnail.auto_position = self.config.get("auto_position_map", True)
             # 透過率更新
             self._apply_bg_opacity(self.config.get("window_opacity", 100))
             
