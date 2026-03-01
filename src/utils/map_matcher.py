@@ -1,14 +1,25 @@
 """
-マップパターン自動検出
-ミニマップのスクリーンショットと各パターン画像の輪郭を比較し、
-一致するパターンを特定する。
+マップパターン自動検出（テンプレートマッチング方式）
+
+パターン画像から注釈除外済みの地形マスクを生成し、
+ミニマップの地形マスクをテンプレートとしてスライドマッチングで一致箇所を探す。
 """
 from __future__ import annotations
 
+import os
+import sys
 import cv2
 import numpy as np
 from dataclasses import dataclass
-from pathlib import Path
+
+
+def _get_debug_dir():
+    """デバッグ画像の保存先"""
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "debug_capture")
 
 
 @dataclass
@@ -16,11 +27,7 @@ class PatternData:
     """前処理済みパターンデータ"""
     pattern_index: int
     image_path: str
-    spawn_point: tuple[int, int] | None
-    spawn_crop_mask: np.ndarray
-    spawn_crop_contours: list
-    hu_moments: np.ndarray
-    local_aspect_ratio: float
+    terrain_mask: np.ndarray  # 注釈除外済み地形マスク（二値画像）
 
 
 @dataclass
@@ -28,21 +35,19 @@ class MatchResult:
     """マッチング結果"""
     pattern_index: int
     image_path: str
-    score: float        # 低いほど一致度が高い
-    confidence: str     # "high", "medium", "low"
-    confidence_pct: float = 0.0  # 信頼度パーセント (0-100)
+    score: float          # テンプレートマッチングスコア (0-1, 高い=一致)
+    probability: float    # 確率 (0-100)
+    match_loc: tuple[int, int] = (0, 0)  # マッチ位置 (デバッグ用)
 
 
 class MapMatcher:
-    """パターン画像の前処理とミニマップとのマッチングを行う"""
+    """テンプレートマッチングでミニマップからパターンを特定"""
 
-    # スポーン地点の青い十字マーカー (HSV)
-    SPAWN_H_LOW, SPAWN_H_HIGH = 90, 115
-    SPAWN_S_LOW = 80
-    SPAWN_V_LOW = 150
-
-    # スポーン周辺の切り出し半径（参照画像のピクセル単位）
-    SPAWN_CROP_RADIUS = 150
+    # マルチスケールマッチングのスケール範囲
+    # ミニマップ1pxがパターン画像の何pxに相当するか
+    SCALE_MIN = 0.5
+    SCALE_MAX = 3.0
+    SCALE_STEPS = 20
 
     def __init__(self):
         self._cache: dict[str, list[PatternData]] = {}
@@ -58,250 +63,261 @@ class MapMatcher:
             if data is not None:
                 patterns.append(data)
 
+        print(f"[MATCH] 前処理完了: zone={zone_name}, "
+              f"画像数={len(image_paths)}, 成功={len(patterns)}")
+
+        # デバッグ: 地形マスクを保存
+        try:
+            debug_dir = _get_debug_dir()
+            os.makedirs(debug_dir, exist_ok=True)
+            for pat in patterns:
+                fname = f"terrain_P{pat.pattern_index}.png"
+                cv2.imwrite(os.path.join(debug_dir, fname), pat.terrain_mask)
+                h, w = pat.terrain_mask.shape
+                px = cv2.countNonZero(pat.terrain_mask)
+                print(f"[MATCH]   P{pat.pattern_index}: {w}x{h}, 地形px={px}")
+        except Exception as e:
+            print(f"[MATCH] デバッグ保存失敗: {e}")
+
         self._cache[zone_name] = patterns
         return patterns
 
-    def _preprocess_single(self, image_path: str, index: int) -> PatternData | None:
-        """1枚のパターン画像を前処理"""
-        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        if image is None:
+    @staticmethod
+    def _imread_safe(path: str, flags=cv2.IMREAD_UNCHANGED) -> np.ndarray | None:
+        """日本語パス対応の画像読み込み"""
+        try:
+            data = np.fromfile(path, dtype=np.uint8)
+            return cv2.imdecode(data, flags)
+        except Exception:
             return None
 
-        # BGRに変換（BGRA対応）
+    def _preprocess_single(self, image_path: str, index: int) -> PatternData | None:
+        """1枚のパターン画像を前処理"""
+        image = self._imread_safe(image_path)
+        if image is None:
+            print(f"[MATCH] 画像読み込み失敗: {image_path}")
+            return None
+
         if image.shape[2] == 4:
             bgr = image[:, :, :3]
         else:
             bgr = image
 
-        # 地形マスクを抽出
-        terrain_mask = self._extract_terrain_mask(bgr)
-
-        # スポーン地点を検出
-        spawn = self._find_spawn_point(bgr)
-
-        # スポーン周辺を切り出し
-        if spawn is not None:
-            crop = self._crop_around_spawn(terrain_mask, spawn, self.SPAWN_CROP_RADIUS)
-        else:
-            # スポーン検出失敗時は画像中央を使用
-            h, w = terrain_mask.shape
-            crop = self._crop_around_spawn(terrain_mask, (w // 2, h // 2), self.SPAWN_CROP_RADIUS)
-
-        # 輪郭を検出
-        contours, _ = cv2.findContours(crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Hu Momentsを計算
-        moments = cv2.moments(crop)
-        hu = cv2.HuMoments(moments).flatten()
-
-        # アスペクト比を計算
-        aspect = self._compute_aspect_ratio(contours)
+        terrain_gray = self._extract_terrain_gray(bgr)
 
         return PatternData(
             pattern_index=index,
             image_path=image_path,
-            spawn_point=spawn,
-            spawn_crop_mask=crop,
-            spawn_crop_contours=contours,
-            hu_moments=hu,
-            local_aspect_ratio=aspect,
+            terrain_mask=terrain_gray,
         )
 
-    def _extract_terrain_mask(self, bgr: np.ndarray) -> np.ndarray:
-        """HSV色分離で地形マスクを抽出（背景・注釈を除外）"""
+    def _extract_terrain_gray(self, bgr: np.ndarray) -> np.ndarray:
+        """ガイド注釈（ピンク矢印）だけ消してグレースケール化
+
+        グレースケール変換後、オレンジ◆（出入口）と水色十字（ウェイポイント）の
+        ピクセルを白(255)に復元し、テンプレートマッチングの特徴点として強調する。
+        """
         hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
 
-        # 背景（濃紺）以外を抽出: V > 50 で暗い背景を除外
-        _, not_bg = cv2.threshold(hsv[:, :, 2], 50, 255, cv2.THRESH_BINARY)
+        # 背景マスク（濃紺 = V < 50）
+        bg_mask = hsv[:, :, 2] < 50
 
-        # 注釈を除外
-        # ピンク矢印/丸: H=140-175, S>80, V>120
+        # ガイド注釈だけ除外（ピンク矢印/丸: H=140-175, S>80, V>120）
         pink = cv2.inRange(hsv, np.array([140, 80, 120]), np.array([175, 255, 255]))
-        # オレンジ◆: H=10-25, S>150, V>150
-        orange = cv2.inRange(hsv, np.array([10, 150, 150]), np.array([25, 255, 255]))
-        # 青十字: H=90-115, S>80, V>150
-        blue = cv2.inRange(hsv, np.array([90, 80, 150]), np.array([115, 255, 255]))
-        # 黄マーカー: H=25-35, S>150, V>150
-        yellow = cv2.inRange(hsv, np.array([25, 150, 150]), np.array([35, 255, 255]))
 
-        annotations = pink | orange | blue | yellow
+        # オレンジ◆（出入口マーカー: H=5-25, S>100, V>150）
+        orange = cv2.inRange(hsv, np.array([5, 100, 150]), np.array([25, 255, 255]))
 
-        # 地形 = 背景でない & 注釈でない
-        terrain = not_bg & ~annotations
+        # 水色十字（ウェイポイント: H=85-105, S>80, V>150）
+        cyan = cv2.inRange(hsv, np.array([85, 80, 150]), np.array([105, 255, 255]))
 
-        # モルフォロジー処理でノイズ除去・穴埋め
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        terrain = cv2.morphologyEx(terrain, cv2.MORPH_CLOSE, kernel)
-        terrain = cv2.morphologyEx(terrain, cv2.MORPH_OPEN, kernel)
+        # グレースケール化
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
 
-        return terrain
+        # 背景を黒に、ピンク注釈を黒に
+        gray[bg_mask] = 0
+        gray[pink > 0] = 0
 
-    def _find_spawn_point(self, bgr: np.ndarray) -> tuple[int, int] | None:
-        """青い十字マーカーの中心座標を検出"""
-        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(
-            hsv,
-            np.array([self.SPAWN_H_LOW, self.SPAWN_S_LOW, self.SPAWN_V_LOW]),
-            np.array([self.SPAWN_H_HIGH, 255, 255]),
-        )
+        # オレンジ◆と水色十字を白(255)に復元 → 強い特徴点になる
+        gray[orange > 0] = 255
+        gray[cyan > 0] = 255
 
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
+        return gray
+
+    def _extract_minimap_gray(self, minimap_bgr: np.ndarray) -> np.ndarray | None:
+        """ミニマップをグレースケール化（未探索領域=黒）
+
+        オレンジ◆と水色十字をパターン画像と同様に白(255)に強調する。
+        """
+        if minimap_bgr is None or minimap_bgr.size == 0:
             return None
 
-        # 最大の青領域の重心を返す
-        largest = max(contours, key=cv2.contourArea)
-        M = cv2.moments(largest)
-        if M["m00"] == 0:
-            return None
-        cx = int(M["m10"] / M["m00"])
-        cy = int(M["m01"] / M["m00"])
-        return (cx, cy)
+        if len(minimap_bgr.shape) == 2:
+            return minimap_bgr
 
-    def _crop_around_spawn(self, mask: np.ndarray, center: tuple[int, int], radius: int) -> np.ndarray:
-        """指定中心点の周辺を円形マスク付きで切り出し"""
-        h, w = mask.shape
-        cx, cy = center
+        hsv = cv2.cvtColor(minimap_bgr, cv2.COLOR_BGR2HSV)
 
-        # 切り出し範囲を計算（画像端をクリップ）
-        x1 = max(0, cx - radius)
-        y1 = max(0, cy - radius)
-        x2 = min(w, cx + radius)
-        y2 = min(h, cy + radius)
+        # 背景（暗い部分=未探索）
+        bg_mask = hsv[:, :, 2] < 40
 
-        crop = mask[y1:y2, x1:x2].copy()
+        # オレンジ◆（出入口マーカー）
+        orange = cv2.inRange(hsv, np.array([5, 100, 150]), np.array([25, 255, 255]))
 
-        # 円形マスクを適用
-        crop_h, crop_w = crop.shape
-        circle_mask = np.zeros((crop_h, crop_w), dtype=np.uint8)
-        center_in_crop = (cx - x1, cy - y1)
-        cv2.circle(circle_mask, center_in_crop, radius, 255, -1)
-        crop = cv2.bitwise_and(crop, circle_mask)
+        # 水色十字（ウェイポイント）
+        cyan = cv2.inRange(hsv, np.array([85, 80, 150]), np.array([105, 255, 255]))
 
-        return crop
+        # グレースケール化
+        gray = cv2.cvtColor(minimap_bgr, cv2.COLOR_BGR2GRAY)
+        gray[bg_mask] = 0
 
-    def _compute_aspect_ratio(self, contours: list) -> float:
-        """最大輪郭のバウンディングボックスのアスペクト比を計算"""
-        if not contours:
-            return 1.0
-        largest = max(contours, key=cv2.contourArea)
-        _, _, w, h = cv2.boundingRect(largest)
-        return w / h if h > 0 else 1.0
+        # マーカーを白に強調
+        gray[orange > 0] = 255
+        gray[cyan > 0] = 255
+
+        return gray
 
     def match_minimap(self, minimap_image: np.ndarray, zone_name: str) -> list[MatchResult]:
-        """ミニマップ画像を全パターンと比較し、スコア順にソートして返す"""
+        """ミニマップをテンプレートとして全パターンとマッチング"""
         patterns = self._cache.get(zone_name)
         if not patterns:
+            print(f"[MATCH] キャッシュなし: zone={zone_name}")
             return []
 
-        # ミニマップの地形を抽出
-        mini_mask, mini_contours, mini_hu, mini_aspect = self._process_minimap(minimap_image)
+        print(f"[MATCH] マッチング開始: zone={zone_name}, パターン数={len(patterns)}, "
+              f"入力画像={minimap_image.shape}")
 
-        if mini_mask is None or cv2.countNonZero(mini_mask) == 0:
+        # ミニマップのグレースケール地形画像を抽出
+        mini_mask = self._extract_minimap_gray(minimap_image)
+        if mini_mask is None:
+            print("[MATCH] エラー: ミニマップマスク抽出失敗")
             return []
 
-        # 各パターンとスコアを計算
-        results = []
-        scores = []
+        nonzero = cv2.countNonZero(mini_mask)
+        print(f"[MATCH] ミニマップマスク: {mini_mask.shape}, 白px={nonzero}")
+
+        if nonzero == 0:
+            print("[MATCH] エラー: ミニマップマスクが全黒")
+            return []
+
+        # デバッグ: ミニマップマスクを保存
+        try:
+            debug_dir = _get_debug_dir()
+            os.makedirs(debug_dir, exist_ok=True)
+            cv2.imwrite(os.path.join(debug_dir, "last_minimap_mask.png"), mini_mask)
+        except Exception:
+            pass
+
+        # マルチスケールテンプレートマッチング
+        scales = np.linspace(self.SCALE_MIN, self.SCALE_MAX, self.SCALE_STEPS)
+        pattern_scores = []
+
         for pat in patterns:
-            score = self._compute_score(pat, mini_hu, mini_aspect, mini_contours, mini_mask)
-            scores.append(score)
-            results.append((pat, score))
+            best_score = -1.0
+            best_loc = (0, 0)
+            best_scale = 1.0
 
-        # 信頼度を判定
-        sorted_scores = sorted(scores)
-        confidence, confidence_pct = self._classify_confidence(sorted_scores)
+            for scale in scales:
+                score, loc = self._template_match_at_scale(
+                    pat.terrain_mask, mini_mask, scale
+                )
+                if score > best_score:
+                    best_score = score
+                    best_loc = loc
+                    best_scale = scale
 
-        # スコア順にソート（低いほど一致）
-        results.sort(key=lambda x: x[1])
+            pattern_scores.append((pat, best_score, best_loc, best_scale))
+            print(f"[MATCH]   P{pat.pattern_index}: score={best_score:.4f} "
+                  f"scale={best_scale:.2f} loc=({best_loc[0]},{best_loc[1]})")
 
-        return [
-            MatchResult(
+        # スコアを確率に変換
+        scores = [s for _, s, _, _ in pattern_scores]
+        probabilities = self._scores_to_probabilities(scores)
+
+        results = []
+        for i, (pat, score, loc, scale) in enumerate(pattern_scores):
+            results.append(MatchResult(
                 pattern_index=pat.pattern_index,
                 image_path=pat.image_path,
                 score=score,
-                confidence=confidence if i == 0 else "low",
-                confidence_pct=confidence_pct if i == 0 else 0.0,
+                probability=probabilities[i],
+                match_loc=loc,
+            ))
+
+        # デバッグ: ベストマッチの位置を可視化
+        try:
+            debug_dir = _get_debug_dir()
+            best_pat, best_score, best_loc, best_scale = max(
+                pattern_scores, key=lambda x: x[1]
             )
-            for i, (pat, score) in enumerate(results)
-        ]
+            # パターン画像にマッチ位置を描画
+            vis = cv2.cvtColor(best_pat.terrain_mask, cv2.COLOR_GRAY2BGR)
+            th, tw = mini_mask.shape
+            scaled_w = int(tw * best_scale)
+            scaled_h = int(th * best_scale)
+            cv2.rectangle(vis, best_loc,
+                         (best_loc[0] + scaled_w, best_loc[1] + scaled_h),
+                         (0, 255, 0), 3)
+            cv2.imwrite(os.path.join(debug_dir, "best_match_vis.png"), vis)
+            print(f"[MATCH] ベスト: P{best_pat.pattern_index} "
+                  f"(score={best_score:.4f}, scale={best_scale:.2f}) "
+                  f"→ debug_capture/best_match_vis.png")
+        except Exception:
+            pass
 
-    def _process_minimap(self, minimap: np.ndarray) -> tuple:
-        """ミニマップから地形マスク・輪郭・Hu Moments・アスペクト比を抽出"""
-        if minimap is None or minimap.size == 0:
-            return None, [], np.zeros(7), 1.0
+        results.sort(key=lambda r: r.probability, reverse=True)
+        return results
 
-        # 既に二値画像（グレースケール）の場合はそのまま使用
-        if len(minimap.shape) == 2:
-            binary = minimap
-        elif minimap.shape[2] == 1:
-            binary = minimap[:, :, 0]
-        else:
-            gray = cv2.cvtColor(minimap, cv2.COLOR_BGR2GRAY)
-            # 適応的二値化
-            binary = cv2.adaptiveThreshold(
-                gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 21, -10,
-            )
-            # ノイズ除去
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-            binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
-            binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-
-        # 輪郭
-        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Hu Moments
-        moments = cv2.moments(binary)
-        hu = cv2.HuMoments(moments).flatten()
-
-        # アスペクト比
-        aspect = self._compute_aspect_ratio(contours)
-
-        return binary, contours, hu, aspect
-
-    def _compute_score(
+    def _template_match_at_scale(
         self,
-        pattern: PatternData,
-        mini_hu: np.ndarray,
-        mini_aspect: float,
-        mini_contours: list,
+        pattern_mask: np.ndarray,
         mini_mask: np.ndarray,
-    ) -> float:
-        """パターンとミニマップの類似度スコアを計算（低い=一致）"""
-        # 1. Hu Moments距離 (weight: 0.5)
-        hu_dist = cv2.matchShapes(
-            pattern.spawn_crop_mask, mini_mask,
-            cv2.CONTOURS_MATCH_I2, 0,
+        scale: float,
+    ) -> tuple[float, tuple[int, int]]:
+        """指定スケールでテンプレートマッチングを実行
+
+        scale: ミニマップ1pxがパターン画像の何pxに相当するか
+        """
+        th, tw = mini_mask.shape
+        new_w = int(tw * scale)
+        new_h = int(th * scale)
+
+        # テンプレートがパターン画像より大きくなったらスキップ
+        ph, pw = pattern_mask.shape
+        if new_w >= pw or new_h >= ph or new_w < 10 or new_h < 10:
+            return -1.0, (0, 0)
+
+        # ミニマップマスクをリサイズ
+        template = cv2.resize(mini_mask, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        # テンプレートマッチング (正規化相関係数)
+        result = cv2.matchTemplate(
+            pattern_mask, template, cv2.TM_CCOEFF_NORMED
         )
 
-        # 2. 最大輪郭マッチ (weight: 0.3)
-        contour_dist = 0.0
-        if mini_contours and pattern.spawn_crop_contours:
-            mini_largest = max(mini_contours, key=cv2.contourArea)
-            pat_largest = max(pattern.spawn_crop_contours, key=cv2.contourArea)
-            contour_dist = cv2.matchShapes(
-                mini_largest, pat_largest,
-                cv2.CONTOURS_MATCH_I2, 0,
-            )
+        _, max_val, _, max_loc = cv2.minMaxLoc(result)
+        return max_val, max_loc
 
-        # 3. アスペクト比差 (weight: 0.2)
-        ar_diff = abs(pattern.local_aspect_ratio - mini_aspect)
-        ar_score = ar_diff / max(pattern.local_aspect_ratio, mini_aspect, 0.01)
+    def _scores_to_probabilities(self, scores: list[float]) -> list[float]:
+        """テンプレートマッチングスコア(高い=良い)を確率(%)に変換"""
+        if not scores:
+            return []
+        if len(scores) == 1:
+            return [100.0]
 
-        return 0.5 * hu_dist + 0.3 * contour_dist + 0.2 * ar_score
+        arr = np.array(scores, dtype=np.float64)
 
-    def _classify_confidence(self, sorted_scores: list[float]) -> tuple[str, float]:
-        """スコア分布から信頼度とパーセントを判定"""
-        if len(sorted_scores) < 2:
-            return "low", 0.0
-        best, second = sorted_scores[0], sorted_scores[1]
-        if second == 0:
-            return "low", 0.0
-        gap = (second - best) / second
-        pct = min(99.9, gap * 100)
-        if gap > 0.5:
-            return "high", pct
-        elif gap > 0.2:
-            return "medium", pct
-        return "low", pct
+        # スコアを0以上にクリップ（負のスコアは無関係）
+        arr = np.clip(arr, 0, None)
+
+        total = np.sum(arr)
+        if total == 0:
+            return [100.0 / len(scores)] * len(scores)
+
+        # スコアの差を強調するために二乗
+        arr_sq = arr ** 2
+        total_sq = np.sum(arr_sq)
+        if total_sq == 0:
+            return [100.0 / len(scores)] * len(scores)
+
+        probs = (arr_sq / total_sq) * 100.0
+        return probs.tolist()

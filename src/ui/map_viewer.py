@@ -131,6 +131,7 @@ class MapImageDialog(QDialog):
         self._pixmaps = {}  # キャッシュ
         self._target_pos = None
         self._positioned = False
+        self._match_probabilities = {}  # {pattern_index(1-indexed): probability}
 
         self.setWindowTitle(os.path.basename(image_path))
         self.setWindowFlags(Qt.Dialog | Qt.WindowStaysOnTopHint)
@@ -197,8 +198,19 @@ class MapImageDialog(QDialog):
         idx = self.current_index + 1
         nav_hint = "← → キーで切替 / ESC で閉じる" if total > 1 else "ESC で閉じる"
         self.info_label.setText(f"{fname}  ({idx}/{total})   {nav_hint}")
-        self.setWindowTitle(f"{fname} ({idx}/{total})")
+
+        # 確率情報があれば表示
+        prob = self._match_probabilities.get(idx)  # 1-indexed
+        if prob is not None:
+            self.setWindowTitle(f"{fname} ({idx}/{total}) — 一致率 {prob:.0f}%")
+        else:
+            self.setWindowTitle(f"{fname} ({idx}/{total})")
     
+    def set_match_probabilities(self, probabilities: dict):
+        """パターン一致確率を設定 {pattern_index(1-indexed): probability}"""
+        self._match_probabilities = probabilities
+        self._show_image()
+
     def showEvent(self, event):
         super().showEvent(event)
         if self._target_pos is not None and not self._positioned:
@@ -266,6 +278,8 @@ class MapThumbnailWidget(QWidget):
         self.current_paths = []
         self._thumbs = []
         self._open_dialog = None
+        self._match_probabilities = {}  # {pattern_index: probability}
+        self._auto_detect_pending = False  # 自動検出待ちフラグ
         self.auto_open = False
         self.auto_position = True
         
@@ -328,7 +342,8 @@ class MapThumbnailWidget(QWidget):
             row_layout.addWidget(thumb)
 
         # auto_open が有効 かつ エリア移動時のみ自動的にダイアログを開く
-        if self.auto_open and zone_changed and paths:
+        # auto_detect_pending が True の場合は検出完了後に開く
+        if self.auto_open and zone_changed and paths and not self._auto_detect_pending:
             self._on_thumb_clicked(paths[0])
 
     def _on_thumb_clicked(self, image_path: str):
@@ -371,6 +386,10 @@ class MapThumbnailWidget(QWidget):
 
                     dialog._target_pos = QPoint(x, y)
 
+        # 確率情報を渡す
+        if self._match_probabilities:
+            dialog._match_probabilities = self._match_probabilities
+
         self._open_dialog = dialog
         dialog.finished.connect(self._on_dialog_closed)
         dialog.open()
@@ -393,34 +412,56 @@ class MapThumbnailWidget(QWidget):
                     layout.takeAt(0)
                 # QLayoutはdeleteLater不要、親から外せばGCされる
     
-    def highlight_pattern(self, pattern_index: int, confidence: str = "high",
-                          confidence_pct: float = 0.0):
-        """指定パターンのサムネイルをハイライト（1-indexed）"""
-        self.clear_highlight()
-        idx = pattern_index - 1  # 1-indexed → 0-indexed
-        if 0 <= idx < len(self._thumbs):
-            self._thumbs[idx].set_highlighted(True, confidence)
+    def highlight_candidates(self, candidates: list[tuple[int, float]]):
+        """複数候補をハイライト表示
 
-        # ヘッダーに検出結果を表示
+        candidates: [(pattern_index, probability), ...] 確率降順
+        pattern_index は 1-indexed
+        """
+        self.clear_highlight()
+        if not candidates:
+            return
+
+        self._match_probabilities = {idx: prob for idx, prob in candidates}
+
+        # 上位候補をハイライト（確率に応じた色）
+        for pattern_index, prob in candidates:
+            idx = pattern_index - 1
+            if 0 <= idx < len(self._thumbs):
+                if prob >= 50:
+                    confidence = "high"
+                elif prob >= 20:
+                    confidence = "medium"
+                else:
+                    confidence = "low"
+                self._thumbs[idx].set_highlighted(True, confidence)
+
+        # ヘッダーに検出結果を表示（上位2候補まで）
         total = len(self.current_paths)
+        display = candidates[:2]
+        parts = [f"P{idx} ({prob:.0f}%)" for idx, prob in display]
+        result_text = " / ".join(parts)
         self.header_label.setText(
             f"🗺 マップレイアウト ({total}パターン)"
-            f" — 自動検出: P{pattern_index} ({confidence_pct:.0f}%)"
+            f" — 自動検出: {result_text}"
         )
 
-        # 開いているダイアログがあればそのパターンに移動
-        if self._open_dialog is not None and 0 <= idx < len(self.current_paths):
-            self._open_dialog.current_index = idx
+        best_idx = candidates[0][0] - 1
+
+        if self._open_dialog is not None and 0 <= best_idx < len(self.current_paths):
+            # 開いているダイアログがあれば最有力候補に移動
+            self._open_dialog.set_match_probabilities(self._match_probabilities)
+            self._open_dialog.current_index = best_idx
             self._open_dialog._show_image()
-            path = self.current_paths[idx]
-            fname = os.path.basename(path)
-            self._open_dialog.setWindowTitle(
-                f"{fname} ({idx+1}/{total})"
-                f" — 自動検出 ({confidence_pct:.0f}%)"
-            )
+        elif self._auto_detect_pending and self.auto_open and 0 <= best_idx < len(self.current_paths):
+            # 自動検出待ちだった → 検出結果のパターンでダイアログを開く
+            self._on_thumb_clicked(self.current_paths[best_idx])
+
+        self._auto_detect_pending = False
 
     def clear_highlight(self):
         """全サムネイルのハイライトを解除"""
+        self._match_probabilities = {}
         for thumb in self._thumbs:
             if thumb._highlighted:
                 thumb.set_highlighted(False)
@@ -428,6 +469,21 @@ class MapThumbnailWidget(QWidget):
         total = len(self.current_paths)
         if total > 0:
             self.header_label.setText(f"🗺 マップレイアウト ({total}パターン)")
+        # ダイアログの確率表示もクリア
+        if self._open_dialog is not None:
+            self._open_dialog.set_match_probabilities({})
+
+        # 自動検出待ちで失敗した場合 → フォールバックで1枚目を表示
+        if self._auto_detect_pending and self.auto_open and self.current_paths:
+            self._auto_detect_pending = False
+            self._on_thumb_clicked(self.current_paths[0])
+
+    def close_dialog(self):
+        """開いているマップダイアログを閉じる"""
+        if self._open_dialog is not None:
+            self._open_dialog.close()
+            self._open_dialog = None
+        self._auto_detect_pending = False
 
     def clear(self):
         """表示をクリア"""

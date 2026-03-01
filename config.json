@@ -941,7 +941,7 @@
     "auto_open_map": true,
     "auto_position_map": true,
     "map_match_enabled": false,
-    "map_match_delay_ms": 3000,
+    "map_match_delay_ms": 1000,
     "map_match_minimap_rect": {
         "x": 1640,
         "y": 10,

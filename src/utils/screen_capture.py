@@ -6,6 +6,8 @@ WSL2環境ではWindows側のゲーム画面をキャプチャできないため
 """
 from __future__ import annotations
 
+import os
+import sys
 import numpy as np
 from PySide6.QtCore import QObject, QTimer, QRect, Signal
 from PySide6.QtGui import QImage, QGuiApplication, QClipboard
@@ -25,6 +27,15 @@ def qimage_to_numpy(qimage: QImage):
     return arr[:, :, :3].copy()
 
 
+def _get_debug_dir():
+    """デバッグ画像の保存先"""
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "debug_capture")
+
+
 class ScreenCapture(QObject):
     """ミニマップ領域をキャプチャしてnumpy配列として送出"""
 
@@ -41,6 +52,7 @@ class ScreenCapture(QObject):
     def set_minimap_rect(self, x: int, y: int, w: int, h: int):
         """キャプチャするミニマップ領域を設定（画面上の絶対座標）"""
         self._minimap_rect = QRect(x, y, w, h)
+        print(f"[CAPTURE] minimap rect: x={x}, y={y}, w={w}, h={h}")
 
     def set_delay(self, ms: int):
         """キャプチャ遅延を設定（ゾーン変更後の待ち時間）"""
@@ -49,6 +61,7 @@ class ScreenCapture(QObject):
     def schedule_capture(self):
         """遅延付きキャプチャをスケジュール（既存のスケジュールはキャンセル）"""
         self._delay_timer.stop()
+        print(f"[CAPTURE] スケジュール: {self._delay_ms}ms後にキャプチャ")
         if self._delay_ms > 0:
             self._delay_timer.start(self._delay_ms)
         else:
@@ -60,8 +73,12 @@ class ScreenCapture(QObject):
 
     def _do_capture(self):
         """画面キャプチャを実行"""
+        print(f"[CAPTURE] キャプチャ実行: rect=({self._minimap_rect.x()}, {self._minimap_rect.y()}, "
+              f"{self._minimap_rect.width()}x{self._minimap_rect.height()})")
+
         screen = QGuiApplication.primaryScreen()
         if screen is None:
+            print("[CAPTURE] エラー: primaryScreen() が None")
             return
 
         pixmap = screen.grabWindow(
@@ -73,12 +90,29 @@ class ScreenCapture(QObject):
         )
 
         if pixmap.isNull():
+            print("[CAPTURE] エラー: pixmap が Null")
             return
+
+        print(f"[CAPTURE] pixmap取得: {pixmap.width()}x{pixmap.height()}")
 
         image = pixmap.toImage()
         arr = qimage_to_numpy(image)
         if arr is not None:
+            print(f"[CAPTURE] numpy変換成功: shape={arr.shape}, mean={arr.mean():.1f}")
+
+            # デバッグ: キャプチャ画像を保存
+            try:
+                import cv2
+                debug_dir = _get_debug_dir()
+                os.makedirs(debug_dir, exist_ok=True)
+                cv2.imwrite(os.path.join(debug_dir, "last_capture.png"), arr)
+                print(f"[CAPTURE] デバッグ画像保存: {debug_dir}/last_capture.png")
+            except Exception as e:
+                print(f"[CAPTURE] デバッグ画像保存失敗: {e}")
+
             self.capture_ready.emit(arr)
+        else:
+            print("[CAPTURE] エラー: numpy変換失敗")
 
     def capture_from_clipboard(self):
         """クリップボードの画像からキャプチャ（WSL2フォールバック用）"""
