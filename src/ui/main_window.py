@@ -25,8 +25,14 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("ぽえなび")
-        self.resize(420, 1200)
-        
+
+        # config の display_monitor で指定されたモニターの右端に縦長で配置
+        from PySide6.QtWidgets import QApplication
+        _config = ConfigManager.load_config()
+        self._display_monitor_index = _config.get("display_monitor", 0)
+        self._initial_positioned = False
+        self.resize(420, 1200)  # 仮サイズ、showEvent で実際に配置
+
         # アプリアイコン設定
         icon_path = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "icon.ico")
         if not os.path.exists(icon_path):
@@ -1549,6 +1555,27 @@ class MainWindow(QMainWindow):
             visit_num = self.zone_visit_counts.get(self.current_zone, 1)
             self._update_guide_and_map(self.current_zone, zone_id, visit_num)
             
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._initial_positioned:
+            self._initial_positioned = True
+            from PySide6.QtWidgets import QApplication
+            screens = QApplication.screens()
+            idx = self._display_monitor_index
+            if screens and 0 <= idx < len(screens):
+                target_screen = screens[idx]
+            elif screens:
+                target_screen = screens[0]
+            else:
+                return
+            geo = target_screen.availableGeometry()
+            actual_w = self.frameGeometry().width()
+            win_h = geo.height()
+            self.resize(self.width(), win_h)
+            x = geo.left() + geo.width() - actual_w
+            y = geo.top()
+            self.move(x, y)
+
     def closeEvent(self, event):
         if self.keyboard_listener:
             self.keyboard_listener.stop()
