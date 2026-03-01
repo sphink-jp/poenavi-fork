@@ -82,8 +82,6 @@ class MainWindow(QMainWindow):
         self.part2_mode = self.config.get("part2_mode", False)
         self.part2_level_threshold = self.config.get("part2_level_threshold", 39)
         self.part2_only_zones = self.config.get("part2_only_zones", [
-            "奴隷管理区画", "The Control Blocks",
-            "焼けた裁判所", "The Torched Courts",
             "冒涜された広間", "The Desecrated Chambers",
             "谷底への道", "The Descent",
             "腐った核", "The Rotting Core",
@@ -92,10 +90,29 @@ class MainWindow(QMainWindow):
             "帝国の穀倉地帯", "The Imperial Fields",
             "ルナリスの中央広場", "The Lunaris Concourse",
             "ソラリスの中央広場", "The Solaris Concourse",
-            "大聖堂の屋上", "The Cathedral Rooftop",
             "荒廃した広場", "The Ravaged Square",
             "運河", "The Canals",
             "餌場", "The Feeding Trough",
+            "カルイの要塞", "The Karui Fortress",
+            "シャヴロンの塔", "Shavronne's Tower",
+            "海水の王の岩礁", "The Brine King's Reef",
+            "マリガロの聖域", "Maligaro's Sanctum",
+            "焼け野原", "The Ashen Fields",
+            "土手道", "The Causeway",
+            "ヴァールの街", "The Vaal City",
+            "堕落の寺院 -第一層-", "The Temple of Decay Level 1",
+            "サーンの城壁", "The Sarn Ramparts",
+            "ドードリの汚水槽", "Doedre's Cesspool",
+            "波止場", "The Quay",
+            "港の橋", "The Harbour Bridge",
+            "浴場", "The Bath House",
+            "ヴァスティリ砂漠", "The Vastiri Desert",
+            "オアシス", "The Oasis",
+            "山麓", "The Foothills",
+            "沸き立つ湖", "The Boiling Lake",
+            "坑道", "The Tunnel",
+            "採石場", "The Quarry",
+            "精錬所", "The Refinery",
         ])
         
         self.timer = QTimer(self)
@@ -1400,6 +1417,7 @@ class MainWindow(QMainWindow):
             self.visit_override = None
             self._update_visit_btn()
             self._in_act10 = False
+            self._set_part2(False)  # Act 1-5に戻す
         
         # 現在のゾーン情報があれば再評価
         if self.current_zone:
