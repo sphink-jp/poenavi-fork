@@ -1,0 +1,830 @@
+{
+  "1_1_1": {
+    "poenavi_id": "act1_area1",
+    "zone_jp": "黄昏の岸辺",
+    "zone_en": "The Twilight Strand",
+    "maps_dir": "黄昏の岸辺"
+  },
+  "1_1_11_1": {
+    "poenavi_id": "act1_area14",
+    "zone_jp": "憤怒の洞窟",
+    "zone_en": "The Cavern of Wrath",
+    "maps_dir": "憤怒の洞窟"
+  },
+  "1_1_11_2": {
+    "poenavi_id": "act1_area15",
+    "zone_jp": "怒りの洞窟",
+    "zone_en": "The Cavern of Anger",
+    "maps_dir": "怒りの洞窟"
+  },
+  "1_1_2": {
+    "poenavi_id": "act1_area2",
+    "zone_jp": "海岸",
+    "zone_en": "The Coast",
+    "maps_dir": "海岸"
+  },
+  "1_1_2a": {
+    "poenavi_id": "act1_area5",
+    "zone_jp": "陸続きの島",
+    "zone_en": "The Tidal Island",
+    "maps_dir": "陸続きの島"
+  },
+  "1_1_3": {
+    "poenavi_id": "act1_area3",
+    "zone_jp": "ぬかるみの干潟",
+    "zone_en": "The Mud Flats",
+    "maps_dir": "ぬかるみの干潟"
+  },
+  "1_1_4_0": {
+    "poenavi_id": "act1_area9",
+    "zone_jp": "水没した海底洞窟",
+    "zone_en": "The Flooded Depths",
+    "maps_dir": "水没した海底洞窟"
+  },
+  "1_1_4_1": {
+    "poenavi_id": "act1_area4",
+    "zone_jp": "海底通路",
+    "zone_en": "The Submerged Passage",
+    "maps_dir": "海底通路"
+  },
+  "1_1_5": {
+    "poenavi_id": "act1_area6",
+    "zone_jp": "岩棚",
+    "zone_en": "The Ledge",
+    "maps_dir": "岩棚"
+  },
+  "1_1_6": {
+    "poenavi_id": "act1_area7",
+    "zone_jp": "険しい山道",
+    "zone_en": "The Climb",
+    "maps_dir": "険しい山道"
+  },
+  "1_1_7_1": {
+    "poenavi_id": "act1_area8",
+    "zone_jp": "牢獄 -下層-",
+    "zone_en": "The Lower Prison",
+    "maps_dir": "牢獄 -下層-"
+  },
+  "1_1_7_2": {
+    "poenavi_id": "act1_area10",
+    "zone_jp": "牢獄 -上層-",
+    "zone_en": "The Upper Prison",
+    "maps_dir": "牢獄 -上層-"
+  },
+  "1_1_8": {
+    "poenavi_id": "act1_area11",
+    "zone_jp": "囚人の門",
+    "zone_en": "Prisoner's Gate",
+    "maps_dir": "囚人の門"
+  },
+  "1_1_9": {
+    "poenavi_id": "act1_area12",
+    "zone_jp": "船の墓場",
+    "zone_en": "The Ship Graveyard",
+    "maps_dir": "船の墓場"
+  },
+  "1_1_9a": {
+    "poenavi_id": "act1_area13",
+    "zone_jp": "船の墓場の洞窟",
+    "zone_en": "The Ship Graveyard Cave",
+    "maps_dir": "船の墓場の洞窟"
+  },
+  "1_2_1": {
+    "poenavi_id": "act2_area1",
+    "zone_jp": "南の森",
+    "zone_en": "The Southern Forest",
+    "maps_dir": "南の森"
+  },
+  "1_2_10": {
+    "poenavi_id": "act2_area9",
+    "zone_jp": "編む者の巣穴",
+    "zone_en": "The Weaver's Chambers",
+    "maps_dir": "編む者の巣穴"
+  },
+  "1_2_11": {
+    "poenavi_id": "act2_area15",
+    "zone_jp": "ヴァールの遺跡",
+    "zone_en": "The Vaal Ruins",
+    "maps_dir": "ヴァールの遺跡"
+  },
+  "1_2_12": {
+    "poenavi_id": "act2_area14",
+    "zone_jp": "湿地",
+    "zone_en": "The Wetlands",
+    "maps_dir": "湿地"
+  },
+  "1_2_14_2": {
+    "poenavi_id": "act2_area17",
+    "zone_jp": "大洞窟",
+    "zone_en": "The Caverns",
+    "maps_dir": "大洞窟"
+  },
+  "1_2_14_3": {
+    "poenavi_id": "act2_area18",
+    "zone_jp": "古代のピラミッド",
+    "zone_en": "The Ancient Pyramid",
+    "maps_dir": "古代のピラミッド"
+  },
+  "1_2_15": {
+    "poenavi_id": "act2_area11",
+    "zone_jp": "フェルシュラインの遺跡",
+    "zone_en": "The Fellshrine Ruins",
+    "maps_dir": "フェルシュラインの遺跡"
+  },
+  "1_2_2": {
+    "poenavi_id": "act2_area2",
+    "zone_jp": "荒廃農地",
+    "zone_en": "The Old Fields",
+    "maps_dir": "荒廃農地"
+  },
+  "1_2_2a": {
+    "poenavi_id": "act2_area4",
+    "zone_jp": "獣の巣",
+    "zone_en": "The Den",
+    "maps_dir": "獣の巣"
+  },
+  "1_2_3": {
+    "poenavi_id": "act2_area3",
+    "zone_jp": "十字路",
+    "zone_en": "The Crossroads",
+    "maps_dir": "十字路"
+  },
+  "1_2_4": {
+    "poenavi_id": "act2_area10",
+    "zone_jp": "壊れた橋",
+    "zone_en": "The Broken Bridge",
+    "maps_dir": "壊れた橋"
+  },
+  "1_2_5_1": {
+    "poenavi_id": "act2_area12",
+    "zone_jp": "地下聖堂 -第一層-",
+    "zone_en": "The Crypt Level 1",
+    "maps_dir": "地下聖堂 -第一層-"
+  },
+  "1_2_5_2": {
+    "poenavi_id": "act2_area13",
+    "zone_jp": "地下聖堂 -第二層-",
+    "zone_en": "The Crypt Level 2",
+    "maps_dir": "地下聖堂 -第二層-"
+  },
+  "1_2_6_1": {
+    "poenavi_id": "act2_area5",
+    "zone_jp": "罪の間 -第一層-",
+    "zone_en": "The Chamber of Sins Level 1",
+    "maps_dir": "罪の間 -第一層-"
+  },
+  "1_2_6_2": {
+    "poenavi_id": "act2_area6",
+    "zone_jp": "罪の間 -第二層-",
+    "zone_en": "The Chamber of Sins Level 2",
+    "maps_dir": "罪の間 -第二層-"
+  },
+  "1_2_7": {
+    "poenavi_id": "act2_area7",
+    "zone_jp": "川沿いの道",
+    "zone_en": "The Riverways",
+    "maps_dir": "川沿いの道"
+  },
+  "1_2_8": {
+    "poenavi_id": "act2_area16",
+    "zone_jp": "北の森",
+    "zone_en": "The Northern Forest",
+    "maps_dir": "北の森"
+  },
+  "1_2_9": {
+    "poenavi_id": "act2_area8",
+    "zone_jp": "西の森",
+    "zone_en": "The Western Forest",
+    "maps_dir": "西の森"
+  },
+  "1_3_1": {
+    "poenavi_id": "act3_area1",
+    "zone_jp": "サーン市街",
+    "zone_en": "The City of Sarn",
+    "maps_dir": "サーン市街"
+  },
+  "1_3_10_1": {
+    "poenavi_id": "act3_area4",
+    "zone_jp": "下水道",
+    "zone_en": "The Sewers",
+    "maps_dir": "下水道"
+  },
+  "1_3_13": {
+    "poenavi_id": "act3_area11",
+    "zone_jp": "黒檀の兵舎",
+    "zone_en": "The Ebony Barracks",
+    "maps_dir": "黒檀の兵舎"
+  },
+  "1_3_14_1": {
+    "poenavi_id": "act3_area12",
+    "zone_jp": "ルナリス寺院 -第一層-",
+    "zone_en": "The Lunaris Temple Level 1",
+    "maps_dir": "ルナリス寺院 -第一層-"
+  },
+  "1_3_14_2": {
+    "poenavi_id": "act3_area13",
+    "zone_jp": "ルナリス寺院 -第二層-",
+    "zone_en": "The Lunaris Temple Level 2",
+    "maps_dir": "ルナリス寺院 -第二層-"
+  },
+  "1_3_15": {
+    "poenavi_id": "act3_area14",
+    "zone_jp": "帝国の庭園",
+    "zone_en": "The Imperial Gardens",
+    "maps_dir": "帝国の庭園"
+  },
+  "1_3_17_1": {
+    "poenavi_id": "act3_area15",
+    "zone_jp": "図書館",
+    "zone_en": "The Library",
+    "maps_dir": "図書館"
+  },
+  "1_3_17_2": {
+    "poenavi_id": "act3_area16",
+    "zone_jp": "公文書館",
+    "zone_en": "The Archives",
+    "maps_dir": "公文書館"
+  },
+  "1_3_18_1": {
+    "poenavi_id": "act3_area17",
+    "zone_jp": "神の杖",
+    "zone_en": "The Sceptre of God",
+    "maps_dir": "神の杖"
+  },
+  "1_3_18_2": {
+    "poenavi_id": "act3_area18",
+    "zone_jp": "神の杖 -上層-",
+    "zone_en": "The Upper Sceptre of God",
+    "maps_dir": "神の杖 -上層-"
+  },
+  "1_3_2": {
+    "poenavi_id": "act3_area2",
+    "zone_jp": "スラム",
+    "zone_en": "The Slums",
+    "maps_dir": "スラム"
+  },
+  "1_3_3_1": {
+    "poenavi_id": "act3_area3",
+    "zone_jp": "火葬場",
+    "zone_en": "The Crematorium",
+    "maps_dir": "火葬場"
+  },
+  "1_3_5": {
+    "poenavi_id": "act3_area5",
+    "zone_jp": "市場",
+    "zone_en": "The Marketplace",
+    "maps_dir": "市場"
+  },
+  "1_3_6": {
+    "poenavi_id": "act3_area6",
+    "zone_jp": "地下墓地",
+    "zone_en": "The Catacombs",
+    "maps_dir": "地下墓地"
+  },
+  "1_3_7": {
+    "poenavi_id": "act3_area7",
+    "zone_jp": "戦場",
+    "zone_en": "The Battlefront",
+    "maps_dir": "戦場"
+  },
+  "1_3_8_1": {
+    "poenavi_id": "act3_area9",
+    "zone_jp": "ソラリス寺院 -第一層-",
+    "zone_en": "The Solaris Temple Level 1",
+    "maps_dir": "ソラリス寺院 -第一層-"
+  },
+  "1_3_8_2": {
+    "poenavi_id": "act3_area10",
+    "zone_jp": "ソラリス寺院 -第二層-",
+    "zone_en": "The Solaris Temple Level 2",
+    "maps_dir": "ソラリス寺院 -第二層-"
+  },
+  "1_3_9": {
+    "poenavi_id": "act3_area8",
+    "zone_jp": "船着場",
+    "zone_en": "The Docks",
+    "maps_dir": "船着場"
+  },
+  "1_4_1": {
+    "poenavi_id": "act4_area1",
+    "zone_jp": "水道橋",
+    "zone_en": "The Aqueduct",
+    "maps_dir": "水道橋"
+  },
+  "1_4_2": {
+    "poenavi_id": "act4_area2",
+    "zone_jp": "干上がった湖",
+    "zone_en": "The Dried Lake",
+    "maps_dir": "干上がった湖"
+  },
+  "1_4_3_1": {
+    "poenavi_id": "act4_area4",
+    "zone_jp": "鉱山 -第一層-",
+    "zone_en": "The Mines Level 1",
+    "maps_dir": "鉱山 -第一層-"
+  },
+  "1_4_3_2": {
+    "poenavi_id": "act4_area5",
+    "zone_jp": "鉱山 -第二層-",
+    "zone_en": "The Mines Level 2",
+    "maps_dir": "鉱山 -第二層-"
+  },
+  "1_4_3_3": {
+    "poenavi_id": "act4_area6",
+    "zone_jp": "水晶鉱脈",
+    "zone_en": "The Crystal Veins",
+    "maps_dir": "水晶鉱脈"
+  },
+  "1_4_4_1": {
+    "poenavi_id": "act4_area9",
+    "zone_jp": "カオムの夢",
+    "zone_en": "Kaom's Dream",
+    "maps_dir": "カオムの夢"
+  },
+  "1_4_4_3": {
+    "poenavi_id": "act4_area10",
+    "zone_jp": "カオムの要塞",
+    "zone_en": "Kaom's Stronghold",
+    "maps_dir": "カオムの要塞"
+  },
+  "1_4_5_1": {
+    "poenavi_id": "act4_area7",
+    "zone_jp": "ダレッソの夢",
+    "zone_en": "Daresso's Dream",
+    "maps_dir": "ダレッソの夢"
+  },
+  "1_4_5_2": {
+    "poenavi_id": "act4_area8",
+    "zone_jp": "大闘技場",
+    "zone_en": "The Grand Arena",
+    "maps_dir": "大闘技場"
+  },
+  "1_4_6_1": {
+    "poenavi_id": "act4_area11",
+    "zone_jp": "魔獣の内部 -第一層-",
+    "zone_en": "The Belly of the Beast Level 1",
+    "maps_dir": "魔獣の内部 -第一層-"
+  },
+  "1_4_6_2": {
+    "poenavi_id": "act4_area12",
+    "zone_jp": "魔獣の内部 -第二層-",
+    "zone_en": "The Belly of the Beast Level 2",
+    "maps_dir": "魔獣の内部 -第二層-"
+  },
+  "1_4_6_3": {
+    "poenavi_id": "act4_area14",
+    "zone_jp": "摘出",
+    "zone_en": "The Harvest",
+    "maps_dir": "摘出"
+  },
+  "1_4_7": {
+    "poenavi_id": "act4_area15",
+    "zone_jp": "頂への道",
+    "zone_en": "The Ascent",
+    "maps_dir": "頂への道"
+  },
+  "1_5_1": {
+    "poenavi_id": "act5_area1",
+    "zone_jp": "奴隷収容所",
+    "zone_en": "The Slave Pens",
+    "maps_dir": "奴隷収容所"
+  },
+  "1_5_2": {
+    "poenavi_id": "act5_area2",
+    "zone_jp": "奴隷管理区画",
+    "zone_en": "The Control Blocks",
+    "maps_dir": "奴隷管理区画"
+  },
+  "1_5_3": {
+    "poenavi_id": "act5_area3",
+    "zone_jp": "オリアス広場",
+    "zone_en": "Oriath Square",
+    "maps_dir": "オリアス広場"
+  },
+  "1_5_3b": {
+    "poenavi_id": "act5_area7",
+    "zone_jp": "破壊された広場",
+    "zone_en": "The Ruined Square",
+    "maps_dir": "破壊された広場"
+  },
+  "1_5_4": {
+    "poenavi_id": "act5_area4",
+    "zone_jp": "テンプラーの裁判所",
+    "zone_en": "The Templar Courts",
+    "maps_dir": "テンプラーの裁判所"
+  },
+  "1_5_4b": {
+    "poenavi_id": "act5_area6",
+    "zone_jp": "焼けた裁判所",
+    "zone_en": "The Torched Courts",
+    "maps_dir": "焼けた裁判所"
+  },
+  "1_5_5": {
+    "poenavi_id": "act5_area5",
+    "zone_jp": "イノセンスの間",
+    "zone_en": "The Chamber of Innocence",
+    "maps_dir": "イノセンスの間"
+  },
+  "1_5_6": {
+    "poenavi_id": "act5_area8",
+    "zone_jp": "納骨堂",
+    "zone_en": "The Ossuary",
+    "maps_dir": "納骨堂"
+  },
+  "1_5_7": {
+    "poenavi_id": "act5_area9",
+    "zone_jp": "聖廟",
+    "zone_en": "The Reliquary",
+    "maps_dir": "聖廟"
+  },
+  "1_5_8": {
+    "poenavi_id": "act5_area10",
+    "zone_jp": "大聖堂の屋上",
+    "zone_en": "The Cathedral Rooftop",
+    "maps_dir": "大聖堂の屋上"
+  },
+  "2_10_1": {
+    "poenavi_id": "act10_area1",
+    "zone_jp": "大聖堂の屋上",
+    "zone_en": "The Cathedral Rooftop",
+    "maps_dir": "大聖堂の屋上#2"
+  },
+  "2_10_2": {
+    "poenavi_id": "act10_area3",
+    "zone_jp": "荒廃した広場",
+    "zone_en": "The Ravaged Square",
+    "maps_dir": "荒廃した広場"
+  },
+  "2_10_3": {
+    "poenavi_id": "act10_area6",
+    "zone_jp": "焼けた裁判所",
+    "zone_en": "The Torched Courts",
+    "maps_dir": "焼けた裁判所#2"
+  },
+  "2_10_4": {
+    "poenavi_id": "act10_area7",
+    "zone_jp": "冒涜された広間",
+    "zone_en": "The Desecrated Chambers",
+    "maps_dir": "冒涜された広間"
+  },
+  "2_10_5": {
+    "poenavi_id": "act10_area9",
+    "zone_jp": "運河",
+    "zone_en": "The Canals",
+    "maps_dir": "運河"
+  },
+  "2_10_6": {
+    "poenavi_id": "act10_area10",
+    "zone_jp": "餌場",
+    "zone_en": "The Feeding Trough",
+    "maps_dir": "餌場"
+  },
+  "2_10_7": {
+    "poenavi_id": "act10_area4",
+    "zone_jp": "奴隷管理区画",
+    "zone_en": "The Control Blocks",
+    "maps_dir": "奴隷管理区画#2"
+  },
+  "2_10_9": {
+    "poenavi_id": "act10_area5",
+    "zone_jp": "納骨堂",
+    "zone_en": "The Ossuary",
+    "maps_dir": "納骨堂#2"
+  },
+  "2_6_1": {
+    "poenavi_id": "act6_area1",
+    "zone_jp": "黄昏の岸辺",
+    "zone_en": "The Twilight Strand",
+    "maps_dir": "黄昏の岸辺#2"
+  },
+  "2_6_10": {
+    "poenavi_id": "act6_area10",
+    "zone_jp": "川沿いの道",
+    "zone_en": "The Riverways",
+    "maps_dir": "川沿いの道#2"
+  },
+  "2_6_11": {
+    "poenavi_id": "act6_area11",
+    "zone_jp": "湿地",
+    "zone_en": "The Wetlands",
+    "maps_dir": "湿地#2"
+  },
+  "2_6_12": {
+    "poenavi_id": "act6_area12",
+    "zone_jp": "南の森",
+    "zone_en": "The Southern Forest",
+    "maps_dir": "南の森#2"
+  },
+  "2_6_13": {
+    "poenavi_id": "act6_area13",
+    "zone_jp": "怒りの洞窟",
+    "zone_en": "The Cavern of Anger",
+    "maps_dir": "怒りの洞窟#2"
+  },
+  "2_6_14": {
+    "poenavi_id": "act6_area14",
+    "zone_jp": "ビーコン",
+    "zone_en": "The Beacon",
+    "maps_dir": "ビーコン"
+  },
+  "2_6_15": {
+    "poenavi_id": "act6_area15",
+    "zone_jp": "海水の王の岩礁",
+    "zone_en": "The Brine King's Reef",
+    "maps_dir": "海水の王の岩礁"
+  },
+  "2_6_2": {
+    "poenavi_id": "act6_area2",
+    "zone_jp": "海岸",
+    "zone_en": "The Coast",
+    "maps_dir": "海岸#2"
+  },
+  "2_6_4": {
+    "poenavi_id": "act6_area3",
+    "zone_jp": "ぬかるみの干潟",
+    "zone_en": "The Mud Flats",
+    "maps_dir": "ぬかるみの干潟#2"
+  },
+  "2_6_5": {
+    "poenavi_id": "act6_area4",
+    "zone_jp": "カルイの要塞",
+    "zone_en": "The Karui Fortress",
+    "maps_dir": "カルイの要塞"
+  },
+  "2_6_6": {
+    "poenavi_id": "act6_area5",
+    "zone_jp": "尾根",
+    "zone_en": "The Ridge",
+    "maps_dir": "尾根"
+  },
+  "2_6_7_1": {
+    "poenavi_id": "act6_area6",
+    "zone_jp": "牢獄 -下層-",
+    "zone_en": "The Lower Prison",
+    "maps_dir": "牢獄 -下層-#2"
+  },
+  "2_6_7_2": {
+    "poenavi_id": "act6_area7",
+    "zone_jp": "シャヴロンの塔",
+    "zone_en": "Shavronne's Tower",
+    "maps_dir": "シャヴロンの塔"
+  },
+  "2_6_8": {
+    "poenavi_id": "act7_area11",
+    "zone_jp": "囚人の門",
+    "zone_en": "Prisoner's Gate",
+    "maps_dir": "囚人の門#2"
+  },
+  "2_6_9": {
+    "poenavi_id": "act6_area9",
+    "zone_jp": "西の森",
+    "zone_en": "The Western Forest",
+    "maps_dir": "西の森#2"
+  },
+  "2_7_1": {
+    "poenavi_id": "act7_area1",
+    "zone_jp": "壊れた橋",
+    "zone_en": "The Broken Bridge",
+    "maps_dir": "壊れた橋#2"
+  },
+  "2_7_10": {
+    "poenavi_id": "act7_area13",
+    "zone_jp": "土手道",
+    "zone_en": "The Causeway",
+    "maps_dir": "土手道"
+  },
+  "2_7_11": {
+    "poenavi_id": "act7_area14",
+    "zone_jp": "ヴァールの街",
+    "zone_en": "The Vaal City",
+    "maps_dir": "ヴァールの街"
+  },
+  "2_7_12_1": {
+    "poenavi_id": "act7_area15",
+    "zone_jp": "堕落の寺院 -第一層-",
+    "zone_en": "The Temple of Decay Level 1",
+    "maps_dir": "堕落の寺院 -第一層-"
+  },
+  "2_7_12_2": {
+    "poenavi_id": "act7_area16",
+    "zone_jp": "堕落の寺院 -第二層-",
+    "zone_en": "The Temple of Decay Level 2",
+    "maps_dir": "堕落の寺院 -第二層-"
+  },
+  "2_7_2": {
+    "poenavi_id": "act7_area2",
+    "zone_jp": "十字路",
+    "zone_en": "The Crossroads",
+    "maps_dir": "十字路#2"
+  },
+  "2_7_3": {
+    "poenavi_id": "act7_area3",
+    "zone_jp": "フェルシュラインの遺跡",
+    "zone_en": "The Fellshrine Ruins",
+    "maps_dir": "フェルシュラインの遺跡#2"
+  },
+  "2_7_4": {
+    "poenavi_id": "act7_area4",
+    "zone_jp": "地下聖堂",
+    "zone_en": "The Crypt",
+    "maps_dir": "地下聖堂"
+  },
+  "2_7_5_1": {
+    "poenavi_id": "act7_area5",
+    "zone_jp": "罪の間 -第一層-",
+    "zone_en": "The Chamber of Sins Level 1",
+    "maps_dir": "罪の間 -第一層-#2"
+  },
+  "2_7_5_2": {
+    "poenavi_id": "act7_area7",
+    "zone_jp": "罪の間 -第二層-",
+    "zone_en": "The Chamber of Sins Level 2",
+    "maps_dir": "罪の間 -第二層-#2"
+  },
+  "2_7_5_map": {
+    "poenavi_id": "act7_area6",
+    "zone_jp": "マリガロの聖域",
+    "zone_en": "Maligaro's Sanctum",
+    "maps_dir": "マリガロの聖域"
+  },
+  "2_7_6": {
+    "poenavi_id": "act7_area8",
+    "zone_jp": "獣の巣",
+    "zone_en": "The Den",
+    "maps_dir": "獣の巣#2"
+  },
+  "2_7_7": {
+    "poenavi_id": "act7_area9",
+    "zone_jp": "焼け野原",
+    "zone_en": "The Ashen Fields",
+    "maps_dir": "焼け野原"
+  },
+  "2_7_8": {
+    "poenavi_id": "act7_area10",
+    "zone_jp": "北の森",
+    "zone_en": "The Northern Forest",
+    "maps_dir": "北の森#2"
+  },
+  "2_7_9": {
+    "poenavi_id": "act7_area12",
+    "zone_jp": "恐怖の密林",
+    "zone_en": "The Dread Thicket",
+    "maps_dir": "恐怖の密林"
+  },
+  "2_8_1": {
+    "poenavi_id": "act8_area1",
+    "zone_jp": "サーンの城壁",
+    "zone_en": "The Sarn Ramparts",
+    "maps_dir": "サーンの城壁"
+  },
+  "2_8_10": {
+    "poenavi_id": "act8_area9",
+    "zone_jp": "帝国の穀倉地帯",
+    "zone_en": "The Imperial Fields",
+    "maps_dir": "帝国の穀倉地帯"
+  },
+  "2_8_11": {
+    "poenavi_id": "act8_area12",
+    "zone_jp": "ソラリスの中央広場",
+    "zone_en": "The Solaris Concourse",
+    "maps_dir": "ソラリスの中央広場"
+  },
+  "2_8_12_1": {
+    "poenavi_id": "act8_area10",
+    "zone_jp": "ソラリス寺院 -第一層-",
+    "zone_en": "The Solaris Temple Level 1",
+    "maps_dir": "ソラリス寺院 -第一層-#2"
+  },
+  "2_8_12_2": {
+    "poenavi_id": "act8_area11",
+    "zone_jp": "ソラリス寺院 -第二層-",
+    "zone_en": "The Solaris Temple Level 2",
+    "maps_dir": "ソラリス寺院 -第二層-#2"
+  },
+  "2_8_13": {
+    "poenavi_id": "act8_area13",
+    "zone_jp": "港の橋",
+    "zone_en": "The Harbour Bridge",
+    "maps_dir": "港の橋"
+  },
+  "2_8_2_1": {
+    "poenavi_id": "act8_area3",
+    "zone_jp": "有毒な排水路",
+    "zone_en": "The Toxic Conduits",
+    "maps_dir": "有毒な排水路"
+  },
+  "2_8_2_2": {
+    "poenavi_id": "act8_area4",
+    "zone_jp": "ドードリの汚水槽",
+    "zone_en": "Doedre's Cesspool",
+    "maps_dir": "ドードリの汚水槽"
+  },
+  "2_8_4": {
+    "poenavi_id": "act8_area19",
+    "zone_jp": "空中庭園",
+    "zone_en": "The High Gardens",
+    "maps_dir": "空中庭園"
+  },
+  "2_8_5": {
+    "poenavi_id": "act8_area18",
+    "zone_jp": "浴場",
+    "zone_en": "The Bath House",
+    "maps_dir": "浴場"
+  },
+  "2_8_6": {
+    "poenavi_id": "act8_area14",
+    "zone_jp": "ルナリスの中央広場",
+    "zone_en": "The Lunaris Concourse",
+    "maps_dir": "ルナリスの中央広場"
+  },
+  "2_8_7_1_": {
+    "poenavi_id": "act8_area15",
+    "zone_jp": "ルナリス寺院 -第一層-",
+    "zone_en": "The Lunaris Temple Level 1",
+    "maps_dir": "ルナリス寺院 -第一層-#2"
+  },
+  "2_8_7_2": {
+    "poenavi_id": "act8_area16",
+    "zone_jp": "ルナリス寺院 -第二層-",
+    "zone_en": "The Lunaris Temple Level 2",
+    "maps_dir": "ルナリス寺院 -第二層-#2"
+  },
+  "2_8_8": {
+    "poenavi_id": "act8_area6",
+    "zone_jp": "波止場",
+    "zone_en": "The Quay",
+    "maps_dir": "波止場"
+  },
+  "2_8_9": {
+    "poenavi_id": "act8_area8",
+    "zone_jp": "穀物倉庫",
+    "zone_en": "The Grain Gate",
+    "maps_dir": "穀物倉庫"
+  },
+  "2_9_1": {
+    "poenavi_id": "act8_area17",
+    "zone_jp": "血の水道橋",
+    "zone_en": "The Blood Aqueduct",
+    "maps_dir": "血の水道橋"
+  },
+  "2_9_10_1": {
+    "poenavi_id": "act9_area9",
+    "zone_jp": "魔獣の内部",
+    "zone_en": "The Belly of the Beast",
+    "maps_dir": "魔獣の内部"
+  },
+  "2_9_10_2": {
+    "poenavi_id": "act9_area10",
+    "zone_jp": "腐った核",
+    "zone_en": "The Rotting Core",
+    "maps_dir": "腐った核"
+  },
+  "2_9_2": {
+    "poenavi_id": "act9_area1",
+    "zone_jp": "谷底への道",
+    "zone_en": "The Descent",
+    "maps_dir": "谷底への道"
+  },
+  "2_9_3": {
+    "poenavi_id": "act9_area2",
+    "zone_jp": "ヴァスティリ砂漠",
+    "zone_en": "The Vastiri Desert",
+    "maps_dir": "ヴァスティリ砂漠"
+  },
+  "2_9_4": {
+    "poenavi_id": "act9_area3",
+    "zone_jp": "オアシス",
+    "zone_en": "The Oasis",
+    "maps_dir": "オアシス"
+  },
+  "2_9_5": {
+    "poenavi_id": "act9_area4",
+    "zone_jp": "山麓",
+    "zone_en": "The Foothills",
+    "maps_dir": "山麓"
+  },
+  "2_9_6": {
+    "poenavi_id": "act9_area5",
+    "zone_jp": "沸き立つ湖",
+    "zone_en": "The Boiling Lake",
+    "maps_dir": "沸き立つ湖"
+  },
+  "2_9_7": {
+    "poenavi_id": "act9_area6",
+    "zone_jp": "坑道",
+    "zone_en": "The Tunnel",
+    "maps_dir": "坑道"
+  },
+  "2_9_8": {
+    "poenavi_id": "act9_area7",
+    "zone_jp": "採石場",
+    "zone_en": "The Quarry",
+    "maps_dir": "採石場"
+  },
+  "2_9_9": {
+    "poenavi_id": "act9_area8",
+    "zone_jp": "精錬所",
+    "zone_en": "The Refinery",
+    "maps_dir": "精錬所"
+  }
+}

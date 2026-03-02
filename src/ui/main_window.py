@@ -155,13 +155,26 @@ class MainWindow(QMainWindow):
                 print(f"Loaded monster_levels.json: {len(self.monster_levels)} entries")
             except Exception as e:
                 print(f"Failed to load monster_levels.json: {e}")
-        
+
+        # Exile-UI ゾーンIDマッピング読み込み
+        exile_zone_map_path = os.path.join(base_dir, "data", "exile_ui_zone_map.json")
+        self.exile_zone_map = {}
+        if os.path.exists(exile_zone_map_path):
+            try:
+                with open(exile_zone_map_path, 'r', encoding='utf-8') as f:
+                    self.exile_zone_map = json.load(f)
+                print(f"Loaded exile_ui_zone_map.json: {len(self.exile_zone_map)} entries")
+            except Exception as e:
+                print(f"Failed to load exile_ui_zone_map.json: {e}")
+        self._pending_area_id = None  # Generating level で検出した内部ID
+
         # ログ監視
         self.log_watcher = LogWatcher(
             log_path=self.config.get("client_log_path", ""),
             parent=self
         )
         self.log_watcher.zone_entered.connect(self.on_zone_entered)
+        self.log_watcher.area_id_detected.connect(self._on_area_id_detected)
         self.log_watcher.level_up.connect(self.on_level_up)
         self.log_watcher.kitava_defeated.connect(self.on_kitava_defeated)
         self.log_watcher.act10_cleared.connect(self.on_act10_cleared)
@@ -1248,6 +1261,20 @@ class MainWindow(QMainWindow):
                     return z.get("id")
         return None
     
+    def _on_area_id_detected(self, area_id: str, seed: int):
+        """Generating level 行からの内部エリアID検知。
+        zone_entered より先に発火するため、一時保存して on_zone_entered で利用する。
+        """
+        self._pending_area_id = area_id
+        print(f"[MainWindow] Area ID detected: {area_id} (seed={seed})")
+
+    def _get_maps_dir_from_area_id(self, area_id: str) -> str | None:
+        """内部エリアIDからmaps/ディレクトリ名を取得（exile_ui_zone_map経由）"""
+        info = self.exile_zone_map.get(area_id)
+        if info:
+            return info.get("maps_dir")
+        return None
+
     def on_zone_entered(self, zone_name: str):
         """エリア入場検知"""
         # 街エリアの場合はゾーン名表示のみ更新、ガイド・マップは前のまま維持
@@ -1414,16 +1441,32 @@ class MainWindow(QMainWindow):
             self.guide_text_label.setText(f"「{zone_name}」のガイドデータはありません")
             self.guide_text_label.setStyleSheet(f"color: #666666; font-size: {self.guide_font_size}px; background: transparent;")
         
-        # マップ画像は日本語フォルダ名で検索（英語クライアント対応）
-        map_zone_name = zone_name
-        if zone_id:
-            for act_zones in self.zone_data.values():
-                for z in act_zones:
-                    if z.get("id") == zone_id:
-                        map_zone_name = z["zone"]  # 日本語名
-                        break
-        self.map_thumbnail.load_maps(map_zone_name, part2=self.part2_mode, zone_changed=zone_changed)
-    
+        # マップ画像のディレクトリ名を決定
+        # 優先順位: 1. Generating level の内部ID → exile_ui_zone_map
+        #          2. zone_data の日本語名 + part2フラグ
+        map_zone_name = None
+        area_id = self._pending_area_id
+        if area_id:
+            map_zone_name = self._get_maps_dir_from_area_id(area_id)
+            if map_zone_name:
+                print(f"[MainWindow] Map dir from area_id '{area_id}': {map_zone_name}")
+            self._pending_area_id = None  # 消費済み
+
+        if not map_zone_name:
+            # フォールバック: 日本語フォルダ名で検索（英語クライアント対応）
+            map_zone_name = zone_name
+            if zone_id:
+                for act_zones in self.zone_data.values():
+                    for z in act_zones:
+                        if z.get("id") == zone_id:
+                            map_zone_name = z["zone"]  # 日本語名
+                            break
+
+        # area_idベースの場合、maps_dir に #2 が含まれているため part2 フラグは不要
+        use_part2 = self.part2_mode if not area_id else False
+
+        self.map_thumbnail.load_maps(map_zone_name, part2=use_part2, zone_changed=zone_changed)
+
     def on_kitava_defeated(self):
         """Act5キタヴァ討伐 → Act6-10に切替 + 自動ラップ"""
         if not self.part2_mode:

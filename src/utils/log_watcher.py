@@ -10,22 +10,29 @@ from PySide6.QtCore import QObject, QTimer, Signal
 
 class LogWatcher(QObject):
     """Client.txtをポーリングで監視し、イベントをシグナルで通知"""
-    
+
     # シグナル定義
     zone_entered = Signal(str)      # エリア名 (例: "地下墓地")
+    area_id_detected = Signal(str, int)  # 内部エリアID, seed (例: "1_3_6", 12345)
     level_up = Signal(str, int)     # キャラ名, レベル
     kitava_defeated = Signal()      # Act5キタヴァ討伐検知
     act10_cleared = Signal()        # Act10キタヴァ討伐検知
-    
+
     # ログ行のパターン（日本語クライアント）
     # "あなたは地下墓地に入場しました。"
     ZONE_PATTERN_JA = re.compile(r"あなたは(.+?)に入場しました。")
     # "testshadwwww  (シャドウ )はレベル24になりました"
     LEVEL_PATTERN_JA = re.compile(r"(.+?)\s*(?:\(.+?\)\s*)?はレベル(\d+)になりました")
-    
+
     # English client patterns (fallback)
     ZONE_PATTERN_EN = re.compile(r": You have entered (.+?)\.")
     LEVEL_PATTERN_EN = re.compile(r"(.+?) \(.+?\) is now level (\d+)")
+
+    # "Generating level 83 area "MapWorldsStrand" with seed 1234567890"
+    # PoE1のClient.txtではゾーン生成時に内部IDが出力される
+    GENERATING_LEVEL_PATTERN = re.compile(
+        r"Generating level (\d+) area \"(.+?)\" with seed (\d+)"
+    )
     
     def __init__(self, log_path: str = "", poll_interval_ms: int = 500, parent=None):
         super().__init__(parent)
@@ -82,7 +89,8 @@ class LogWatcher(QObject):
             
             found_level = False
             found_zone = False
-            
+            found_area_id = False
+
             # 末尾から逆順に検索
             for line in reversed(lines):
                 if not found_level:
@@ -95,7 +103,7 @@ class LogWatcher(QObject):
                         self.level_up.emit(char_name, level)
                         found_level = True
                         print(f"[LogWatcher] Restored level: {char_name} Lv.{level}")
-                
+
                 if not found_zone:
                     m = self.ZONE_PATTERN_JA.search(line)
                     if not m:
@@ -105,8 +113,17 @@ class LogWatcher(QObject):
                         self.zone_entered.emit(zone_name)
                         found_zone = True
                         print(f"[LogWatcher] Restored zone: {zone_name}")
-                
-                if found_level and found_zone:
+
+                if not found_area_id:
+                    m = self.GENERATING_LEVEL_PATTERN.search(line)
+                    if m:
+                        area_id = m.group(2).strip()
+                        seed = int(m.group(3))
+                        self.area_id_detected.emit(area_id, seed)
+                        found_area_id = True
+                        print(f"[LogWatcher] Restored area_id: {area_id}")
+
+                if found_level and found_zone and found_area_id:
                     break
                     
         except Exception as e:
@@ -149,13 +166,22 @@ class LogWatcher(QObject):
     
     def _parse_line(self, line: str):
         """1行をパースしてシグナルを発行"""
+        # Generating level チェック（エリア入場より先に来る）
+        m = self.GENERATING_LEVEL_PATTERN.search(line)
+        if m:
+            level = int(m.group(1))
+            area_id = m.group(2).strip()
+            seed = int(m.group(3))
+            self.area_id_detected.emit(area_id, seed)
+            return
+
         # エリア入場チェック（日本語）
         m = self.ZONE_PATTERN_JA.search(line)
         if m:
             zone_name = m.group(1).strip()
             self.zone_entered.emit(zone_name)
             return
-        
+
         # エリア入場チェック（英語）
         m = self.ZONE_PATTERN_EN.search(line)
         if m:
