@@ -65,24 +65,32 @@ def _list_images(directory: str) -> list[str]:
 class ClickableThumb(QLabel):
     """クリック可能なサムネイルラベル"""
     clicked = Signal(str)  # ファイルパスを送出
-    
+
+    _STYLE_NORMAL = """
+        QLabel {
+            border: 1px solid rgba(176, 255, 123, 0.3);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 100);
+        }
+        QLabel:hover {
+            border: 1px solid rgba(176, 255, 123, 0.7);
+        }
+    """
+    _HIGHLIGHT_COLORS = {
+        "high":   "rgba(0, 255, 80, 0.9)",
+        "medium": "rgba(255, 255, 0, 0.9)",
+        "low":    "rgba(255, 160, 0, 0.9)",
+    }
+
     def __init__(self, image_path: str, parent=None):
         super().__init__(parent)
         self.image_path = image_path
+        self._highlighted = False
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.setFixedSize(THUMB_WIDTH, THUMB_HEIGHT)
-        self.setStyleSheet("""
-            QLabel {
-                border: 1px solid rgba(176, 255, 123, 0.3);
-                border-radius: 4px;
-                background: rgba(0, 0, 0, 100);
-            }
-            QLabel:hover {
-                border: 1px solid rgba(176, 255, 123, 0.7);
-            }
-        """)
+        self.setStyleSheet(self._STYLE_NORMAL)
         self.setAlignment(Qt.AlignCenter)
-        
+
         # サムネイル読み込み
         pix = QPixmap(image_path)
         if not pix.isNull():
@@ -91,7 +99,22 @@ class ClickableThumb(QLabel):
                 Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
             self.setPixmap(scaled)
-    
+
+    def set_highlighted(self, highlighted: bool, confidence: str = "high"):
+        """ハイライト表示の切替（confidence: high=緑, medium=黄, low=橙）"""
+        self._highlighted = highlighted
+        if highlighted:
+            color = self._HIGHLIGHT_COLORS.get(confidence, self._HIGHLIGHT_COLORS["low"])
+            self.setStyleSheet(f"""
+                QLabel {{
+                    border: 3px solid {color};
+                    border-radius: 4px;
+                    background: rgba(0, 0, 0, 100);
+                }}
+            """)
+        else:
+            self.setStyleSheet(self._STYLE_NORMAL)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.clicked.emit(self.image_path)
@@ -108,6 +131,7 @@ class MapImageDialog(QDialog):
         self._pixmaps = {}  # キャッシュ
         self._target_pos = None
         self._positioned = False
+        self._match_probabilities = {}  # {pattern_index(1-indexed): probability}
 
         self.setWindowTitle(os.path.basename(image_path))
         self.setWindowFlags(Qt.Dialog | Qt.WindowStaysOnTopHint)
@@ -126,7 +150,7 @@ class MapImageDialog(QDialog):
         # ファイル名 + ナビ表示
         self.info_label = QLabel()
         self.info_label.setAlignment(Qt.AlignCenter)
-        self.info_label.setStyleSheet("color: #888888; font-size: 13px; margin-top: 5px;")
+        self.info_label.setStyleSheet("color: #888888; font-size: 11px; margin-top: 5px;")
         layout.addWidget(self.info_label)
         
         # 保存されたサイズを復元
@@ -172,9 +196,20 @@ class MapImageDialog(QDialog):
         fname = os.path.basename(path)
         total = len(self.all_paths)
         idx = self.current_index + 1
-        nav_hint = "画像の左右いずれかを左クリック、または←→キーで切替 / ESCで閉じる" if total > 1 else "ESCで閉じる"
+        nav_hint = "← → キーで切替 / ESC で閉じる" if total > 1 else "ESC で閉じる"
         self.info_label.setText(f"{fname}  ({idx}/{total})   {nav_hint}")
-        self.setWindowTitle(f"{fname} ({idx}/{total})")
+
+        # 確率情報があれば表示
+        prob = self._match_probabilities.get(idx)  # 1-indexed
+        if prob is not None:
+            self.setWindowTitle(f"{fname} ({idx}/{total}) — 一致率 {prob:.0f}%")
+        else:
+            self.setWindowTitle(f"{fname} ({idx}/{total})")
+
+    def set_match_probabilities(self, probabilities: dict):
+        """パターン一致確率を設定 {pattern_index(1-indexed): probability}"""
+        self._match_probabilities = probabilities
+        self._show_image()
     
     def showEvent(self, event):
         super().showEvent(event)
@@ -243,6 +278,8 @@ class MapThumbnailWidget(QWidget):
         self.current_paths = []
         self._thumbs = []
         self._open_dialog = None
+        self._match_probabilities = {}  # {pattern_index: probability}
+        self._auto_detect_pending = False  # 自動検出待ちフラグ
         self.auto_open = False
         self.auto_position = True
         
@@ -305,7 +342,8 @@ class MapThumbnailWidget(QWidget):
             row_layout.addWidget(thumb)
 
         # auto_open が有効 かつ エリア移動時のみ自動的にダイアログを開く
-        if self.auto_open and zone_changed and paths:
+        # auto_detect_pending が True の場合は検出完了後に開く
+        if self.auto_open and zone_changed and paths and not self._auto_detect_pending:
             self._on_thumb_clicked(paths[0])
 
     def _on_thumb_clicked(self, image_path: str):
@@ -348,21 +386,9 @@ class MapThumbnailWidget(QWidget):
 
                     dialog._target_pos = QPoint(x, y)
 
-        # auto_positionがOFFの場合、サムネイルのすぐ上・中央揃えで表示
-        if dialog._target_pos is None:
-            main_win = self.window()
-            if main_win:
-                main_geo = main_win.frameGeometry()
-                dialog_w = dialog.width()
-                dialog_h = dialog.height()
-                # X: メインウィンドウの中央にダイアログの中央を合わせる
-                x = main_geo.left() + (main_geo.width() - dialog_w) // 2
-                # Y: サムネイル領域の画面上端のすぐ上にダイアログ下端を合わせる
-                thumb_global_y = self.mapToGlobal(QPoint(0, 0)).y()
-                y = thumb_global_y - dialog_h - 5
-                if y < 0:
-                    y = 0
-                dialog._target_pos = QPoint(x, y)
+        # 確率情報を渡す
+        if self._match_probabilities:
+            dialog._match_probabilities = self._match_probabilities
 
         self._open_dialog = dialog
         dialog.finished.connect(self._on_dialog_closed)
@@ -386,6 +412,79 @@ class MapThumbnailWidget(QWidget):
                     layout.takeAt(0)
                 # QLayoutはdeleteLater不要、親から外せばGCされる
     
+    def highlight_candidates(self, candidates: list[tuple[int, float]]):
+        """複数候補をハイライト表示
+
+        candidates: [(pattern_index, probability), ...] 確率降順
+        pattern_index は 1-indexed
+        """
+        self.clear_highlight()
+        if not candidates:
+            return
+
+        self._match_probabilities = {idx: prob for idx, prob in candidates}
+
+        # 上位候補をハイライト（確率に応じた色）
+        for pattern_index, prob in candidates:
+            idx = pattern_index - 1
+            if 0 <= idx < len(self._thumbs):
+                if prob >= 50:
+                    confidence = "high"
+                elif prob >= 20:
+                    confidence = "medium"
+                else:
+                    confidence = "low"
+                self._thumbs[idx].set_highlighted(True, confidence)
+
+        # ヘッダーに検出結果を表示（上位2候補まで）
+        total = len(self.current_paths)
+        display = candidates[:2]
+        parts = [f"P{idx} ({prob:.0f}%)" for idx, prob in display]
+        result_text = " / ".join(parts)
+        self.header_label.setText(
+            f"🗺 マップレイアウト ({total}パターン)"
+            f" — 自動検出: {result_text}"
+        )
+
+        best_idx = candidates[0][0] - 1
+
+        if self._open_dialog is not None and 0 <= best_idx < len(self.current_paths):
+            # 開いているダイアログがあれば最有力候補に移動
+            self._open_dialog.set_match_probabilities(self._match_probabilities)
+            self._open_dialog.current_index = best_idx
+            self._open_dialog._show_image()
+        elif self._auto_detect_pending and self.auto_open and 0 <= best_idx < len(self.current_paths):
+            # 自動検出待ちだった → 検出結果のパターンでダイアログを開く
+            self._on_thumb_clicked(self.current_paths[best_idx])
+
+        self._auto_detect_pending = False
+
+    def clear_highlight(self):
+        """全サムネイルのハイライトを解除"""
+        self._match_probabilities = {}
+        for thumb in self._thumbs:
+            if thumb._highlighted:
+                thumb.set_highlighted(False)
+        # ヘッダーをリセット
+        total = len(self.current_paths)
+        if total > 0:
+            self.header_label.setText(f"🗺 マップレイアウト ({total}パターン)")
+        # ダイアログの確率表示もクリア
+        if self._open_dialog is not None:
+            self._open_dialog.set_match_probabilities({})
+
+        # 自動検出待ちで失敗した場合 → フォールバックで1枚目を表示
+        if self._auto_detect_pending and self.auto_open and self.current_paths:
+            self._auto_detect_pending = False
+            self._on_thumb_clicked(self.current_paths[0])
+
+    def close_dialog(self):
+        """開いているマップダイアログを閉じる"""
+        if self._open_dialog is not None:
+            self._open_dialog.close()
+            self._open_dialog = None
+        self._auto_detect_pending = False
+
     def clear(self):
         """表示をクリア"""
         if self._open_dialog is not None:

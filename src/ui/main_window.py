@@ -17,6 +17,8 @@ from src.utils.lap_recorder import LapRecorder
 from src.utils.log_watcher import LogWatcher
 from src.utils.zone_data import get_zone_info, get_level_advice, DEFAULT_ZONE_DATA
 from src.utils.guide_data import load_guide_data, get_zone_guide, format_guide_html
+from src.utils.map_matcher import MapMatcher
+from src.utils.screen_capture import ScreenCapture
 
 class MainWindow(QMainWindow):
     # ホットキーイベントをメインスレッドで処理するためのシグナル
@@ -128,6 +130,19 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self.map_thumbnail.auto_open = self.config.get("auto_open_map", False)
         self.map_thumbnail.auto_position = self.config.get("auto_position_map", True)
+
+        # マップパターン自動検出
+        self.map_matcher = MapMatcher()
+        self.screen_capture = ScreenCapture(self)
+        self._map_match_enabled = self.config.get("map_match_enabled", False)
+        rect = self.config.get("map_match_minimap_rect", {})
+        self.screen_capture.set_minimap_rect(
+            rect.get("x", 0), rect.get("y", 0),
+            rect.get("width", 300), rect.get("height", 300),
+        )
+        self.screen_capture.set_delay(self.config.get("map_match_delay_ms", 3000))
+        self.screen_capture.capture_ready.connect(self._on_minimap_captured)
+
         self.setMouseTracking(True)
         self.centralWidget().setMouseTracking(True)
         self._apply_bg_opacity(self.config.get("window_opacity", 100))
@@ -1282,6 +1297,9 @@ class MainWindow(QMainWindow):
         if self._is_town_zone(zone_name):
             act_range = "Act 6-10" if self.part2_mode else "Act 1-5"
             self.zone_label.setText(f"🏠 {zone_name} [{act_range}]")
+            # 街に入ったらマップダイアログを閉じる
+            self.map_thumbnail.close_dialog()
+            self.screen_capture.cancel()
             # Labクリア後の街帰還 → 志す者の広場の2回目ガイドを表示
             if self._in_lab and self._lab_zone_id:
                 self._in_lab = False
@@ -1465,7 +1483,55 @@ class MainWindow(QMainWindow):
         # area_idベースの場合、maps_dir に #2 が含まれているため part2 フラグは不要
         use_part2 = self.part2_mode if not area_id else False
 
+        # 自動検出が有効なら、ダイアログ表示を検出完了まで待たせる
+        will_detect = (zone_changed and self._map_match_enabled)
+        self.map_thumbnail._auto_detect_pending = will_detect
+
         self.map_thumbnail.load_maps(map_zone_name, part2=use_part2, zone_changed=zone_changed)
+
+        # マップパターン自動検出: ゾーン変更時にキャプチャをスケジュール
+        if will_detect and self.map_thumbnail.current_paths:
+            self._current_match_zone = map_zone_name
+            # パターン画像を前処理（キャッシュ済みなら即座に返る）
+            self.map_matcher.preprocess_zone(map_zone_name, self.map_thumbnail.current_paths)
+            self.screen_capture.schedule_capture()
+            # キャプチャ失敗時のフォールバック: 遅延+2秒後にまだ待ちなら1枚目を表示
+            delay = self.config.get("map_match_delay_ms", 1000)
+            QTimer.singleShot(delay + 2000, self._detect_timeout_fallback)
+        else:
+            self.map_thumbnail._auto_detect_pending = False
+            self.screen_capture.cancel()
+
+    def _on_minimap_captured(self, minimap_bgr):
+        """ミニマップキャプチャ完了 → パターンマッチング実行"""
+        zone_name = getattr(self, "_current_match_zone", "")
+        if not zone_name:
+            return
+
+        results = self.map_matcher.match_minimap(minimap_bgr, zone_name)
+        if results:
+            # 確率5%以上の候補を表示
+            candidates = [
+                (r.pattern_index, r.probability)
+                for r in results if r.probability >= 5.0
+            ]
+            if not candidates:
+                candidates = [(results[0].pattern_index, results[0].probability)]
+
+            log_parts = [f"P{idx}({prob:.0f}%)" for idx, prob in candidates]
+            print(f"[MAP] パターン検出: {' / '.join(log_parts)}")
+            self.map_thumbnail.highlight_candidates(candidates)
+        else:
+            print("[MAP] パターン検出失敗")
+            self.map_thumbnail.clear_highlight()
+
+    def _detect_timeout_fallback(self):
+        """自動検出がタイムアウトした場合のフォールバック"""
+        if self.map_thumbnail._auto_detect_pending:
+            print("[MAP] 自動検出タイムアウト — フォールバックで1枚目を表示")
+            self.map_thumbnail._auto_detect_pending = False
+            if self.map_thumbnail.auto_open and self.map_thumbnail.current_paths:
+                self.map_thumbnail._on_thumb_clicked(self.map_thumbnail.current_paths[0])
 
     def on_kitava_defeated(self):
         """Act5キタヴァ討伐 → Act6-10に切替 + 自動ラップ"""
